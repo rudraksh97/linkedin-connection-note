@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LinkedIn AI Note Helper</title>
+  <!-- The style.css is injected by content_script via manifest.json,
+       but can also be linked here for standalone testing/development if needed. -->
+  <link rel="stylesheet" type="text/css" href="../css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="left-pane">
+      <h2>Used Notes History</h2>
+      <div id="used-notes-list">
+        <!-- Used notes will be populated here by content_script.js -->
+        <p>No notes used yet.</p>
+      </div>
+    </div>
+    <div class="right-pane">
+      <h2>AI Suggestions</h2>
+      <div id="ai-suggestions-area">
+        <!-- AI suggestions will be populated here by content_script.js -->
+        <p>Click the button to get suggestions.</p>
+      </div>
+      <button id="ai-suggestion-btn">Get AI Suggestion (Test)</button>
+    </div>
+  </div>
+  <!-- popup.js is not strictly needed if content_script.js handles all logic,
+       but can be used if the popup becomes more complex and is opened as a browser action.
+       For now, we assume content_script.js injects this HTML and handles its events.
+  <script src="popup.js"></script>
+  -->
+</body>
+</html>

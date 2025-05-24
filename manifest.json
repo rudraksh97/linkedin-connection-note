@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn AI Note Helper",
+  "version": "0.1.0",
+  "description": "A Chrome extension to help you write LinkedIn notes.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/*"
+      ],
+      "js": [
+        "content_script.js"
+      ],
+      "css": [
+        "css/style.css"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+/* Basic styling for the popup and injected UI elements */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+}
+
+#linkedin-ai-note-helper-main-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 450px;
+  height: auto;
+  max-height: 500px;
+  background-color: #ffffff;
+  border: 1px solid #dbdbdb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#linkedin-ai-note-helper-main-container .container {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+#linkedin-ai-note-helper-main-container .left-pane {
+  width: 48%;
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+#linkedin-ai-note-helper-main-container .right-pane {
+  width: 48%;
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  background-color: #f0f8ff;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+#linkedin-ai-note-helper-main-container h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+/* Styling for Used Notes History */
+#linkedin-ai-note-helper-main-container #used-notes-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  font-size: 0.9em;
+  color: #555;
+}
+
+#linkedin-ai-note-helper-main-container .history-note-item {
+  padding: 8px;
+  margin-bottom: 5px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+#linkedin-ai-note-helper-main-container .history-note-item:hover {
+  background-color: #f0f0f0;
+}
+
+#linkedin-ai-note-helper-main-container .empty-history-message {
+  color: #777;
+  font-style: italic;
+  padding: 10px 0;
+}
+
+
+/* Styling for AI Suggestions Area */
+#linkedin-ai-note-helper-main-container #ai-suggestions-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  font-size: 0.9em;
+  color: #333;
+}
+
+#linkedin-ai-note-helper-main-container .ai-suggestion-wrapper {
+  padding: 8px;
+  margin-bottom: 10px;
+  background-color: #e6f2ff;
+  border: 1px solid #cce0ff;
+  border-radius: 4px;
+}
+
+#linkedin-ai-note-helper-main-container .ai-suggestion-text {
+  margin-top: 0;
+  margin-bottom: 8px;
+  white-space: pre-wrap; /* Preserve line breaks from AI */
+}
+
+#linkedin-ai-note-helper-main-container .use-note-button {
+  background-color: #28a745; /* Green color for 'Use' */
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: background-color 0.3s ease;
+}
+
+#linkedin-ai-note-helper-main-container .use-note-button:hover {
+  background-color: #218838; /* Darker green */
+}
+
+/* General Button (test button) styling */
+#linkedin-ai-note-helper-main-container button#ai-suggestion-btn { /* More specific selector for the test button */
+  background-color: #0077b5; /* LinkedIn blue */
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+#linkedin-ai-note-helper-main-container button#ai-suggestion-btn:hover {
+  background-color: #005e90;
+}
+
+/* Placeholder and Error styling (generic for ai-suggestions-area) */
+#linkedin-ai-note-helper-main-container #ai-suggestions-area p.ai-suggestion-error,
+#linkedin-ai-note-helper-main-container #ai-suggestions-area p[style*="color: red"],
+#linkedin-ai-note-helper-main-container #ai-suggestions-area p[style*="color: orange"] {
+  font-weight: bold;
+  color: #d9534f !important; /* Bootstrap danger color */
+  background-color: #f2dede !important;
+  border-color: #ebccd1 !important;
+  padding: 10px;
+  border-radius: 4px;
+}
