@@ -105,25 +105,40 @@ function setupObserver() {
         var node = mutation.addedNodes[j];
         if (node.nodeType === 1) {
           // Check for different possible modal selectors
-                      if (node.querySelector) {
-              var modal = node.querySelector('artdeco-modal') || 
-                         node.querySelector('[role="dialog"]') ||
-                         node.querySelector('.artdeco-modal') ||
-                         node.querySelector('[data-test-modal]');
+          if (node.querySelector) {
+            var modal = node.querySelector('artdeco-modal') || 
+                       node.querySelector('[role="dialog"]') ||
+                       node.querySelector('.artdeco-modal') ||
+                       node.querySelector('[data-test-modal]');
+            
+            if (modal) {
+              debugLog("Found modal in added node, checking if it's a connection modal...");
+              var modalPreview = (modal.textContent || '').substring(0, 100);
+              debugLog("Modal text preview:", modalPreview);
               
-              if (modal && isConnectionModal(modal)) {
-                debugLog("Connection modal detected:", modal);
+              if (isConnectionModal(modal)) {
+                debugLog("✅ Connection modal confirmed! Injecting UI...");
                 setTimeout(injectUI, 1500); // Increased delay
                 break;
+              } else {
+                debugLog("❌ Modal rejected - not a connection modal");
               }
             }
+          }
           // Also check if the node itself is a modal
           if ((node.tagName === 'ARTDECO-MODAL' || 
-               node.getAttribute && node.getAttribute('role') === 'dialog') &&
-               isConnectionModal(node)) {
-            debugLog("Direct connection modal detected:", node);
-            setTimeout(injectUI, 1500); // Increased delay
-            break;
+               node.getAttribute && node.getAttribute('role') === 'dialog')) {
+            debugLog("Found direct modal node, checking if it's a connection modal...");
+            var modalPreview = (node.textContent || '').substring(0, 100);
+            debugLog("Modal text preview:", modalPreview);
+            
+            if (isConnectionModal(node)) {
+              debugLog("✅ Direct connection modal confirmed! Injecting UI...");
+              setTimeout(injectUI, 1500); // Increased delay
+              break;
+            } else {
+              debugLog("❌ Direct modal rejected - not a connection modal");
+            }
           }
         }
       }
@@ -131,7 +146,7 @@ function setupObserver() {
   });
   
   observer.observe(document.body, { childList: true, subtree: true });
-  debugLog("Observer set up");
+  debugLog("Observer set up - will watch for modal changes");
 }
 
 // Check if LinkedIn modal was removed
@@ -171,52 +186,65 @@ function isConnectionModal(modal) {
   var modalText = modal.textContent || modal.innerText || '';
   var modalHTML = modal.innerHTML || '';
   
-  // Check for connection-specific text content
-  var connectionIndicators = [
-    'Add a note',
-    'invitation',
-    'Send invitation',
-    'Connect',
-    'connection request',
-    'How do you know',
-    'Send now',
-    'Connect with'
-  ];
+  debugLog("Checking modal with text:", modalText.substring(0, 200));
   
-  // Check text content
-  for (var i = 0; i < connectionIndicators.length; i++) {
-    if (modalText.toLowerCase().indexOf(connectionIndicators[i].toLowerCase()) !== -1) {
-      debugLog("Connection modal identified by text:", connectionIndicators[i]);
-      return true;
-    }
-  }
+  // VERY SPECIFIC: Must contain "Add a note" text - this is the key indicator
+  var hasAddNote = modalText.toLowerCase().indexOf('add a note') !== -1;
   
-  // Check for specific elements that indicate connection modal
-  var connectionElements = [
-    'textarea[name="message"]',
-    'input[name="message"]', 
-    '[data-control-name*="invite"]',
-    '[data-control-name*="connect"]',
-    'button[aria-label*="Send invitation"]',
-    'button[aria-label*="Connect"]'
-  ];
+  // SPECIFIC: Must have a textarea for message input (connection note modals have this)
+  var hasMessageTextarea = modal.querySelector('textarea[name="message"]') || 
+                          modal.querySelector('textarea[aria-label*="message"]') ||
+                          modal.querySelector('textarea[placeholder*="message"]');
   
-  for (var i = 0; i < connectionElements.length; i++) {
-    if (modal.querySelector(connectionElements[i])) {
-      debugLog("Connection modal identified by element:", connectionElements[i]);
-      return true;
-    }
-  }
+  // SPECIFIC: Must have invitation/connect specific elements
+  var hasInviteElements = modal.querySelector('[data-control-name*="invite"]') ||
+                         modal.querySelector('button[aria-label*="Send invitation"]') ||
+                         modal.querySelector('button[aria-label*="Send invite"]');
   
-  // Check for URL parameters or modal attributes
-  if (modalHTML.indexOf('invitation') !== -1 || 
-      modalHTML.indexOf('connect') !== -1 ||
-      modalHTML.indexOf('message') !== -1) {
-    debugLog("Connection modal identified by HTML content");
+  // SPECIFIC: Check for the exact combination that indicates connection modal
+  if (hasAddNote && hasMessageTextarea) {
+    debugLog("Connection modal identified: Has 'Add a note' text AND message textarea");
     return true;
   }
   
-  debugLog("Modal is not a connection modal");
+  // FALLBACK: Very specific text combinations only
+  var specificPhrases = [
+    'add a note to your invitation',
+    'include a personal note',
+    'send invitation without a note'
+  ];
+  
+  for (var i = 0; i < specificPhrases.length; i++) {
+    if (modalText.toLowerCase().indexOf(specificPhrases[i]) !== -1) {
+      debugLog("Connection modal identified by specific phrase:", specificPhrases[i]);
+      return true;
+    }
+  }
+  
+  // REJECT: If it's clearly not a connection modal
+  var rejectIndicators = [
+    'send message',
+    'new message',
+    'compose message',
+    'profile',
+    'settings',
+    'notification',
+    'share',
+    'post',
+    'comment',
+    'like',
+    'follow'
+  ];
+  
+  var lowerModalText = modalText.toLowerCase();
+  for (var i = 0; i < rejectIndicators.length; i++) {
+    if (lowerModalText.indexOf(rejectIndicators[i]) !== -1) {
+      debugLog("Modal rejected due to:", rejectIndicators[i]);
+      return false;
+    }
+  }
+  
+  debugLog("Modal is not a connection modal - insufficient specific indicators");
   return false;
 }
 
@@ -2400,6 +2428,32 @@ function testTextareaFocus() {
   }, 100);
 }
 
+// Debug function to check all current modals
+function debugCurrentModals() {
+  console.log("=== DEBUGGING ALL CURRENT MODALS ===");
+  
+  var allModals = document.querySelectorAll('artdeco-modal, [role="dialog"], .artdeco-modal');
+  console.log("Found", allModals.length, "total modals");
+  
+  for (var i = 0; i < allModals.length; i++) {
+    var modal = allModals[i];
+    var modalText = (modal.textContent || modal.innerText || '').substring(0, 200);
+    var isConnection = isConnectionModal(modal);
+    
+    console.log("Modal", i + 1, ":");
+    console.log("  - Text preview:", modalText);
+    console.log("  - Is connection modal:", isConnection);
+    console.log("  - Element:", modal);
+    console.log("  ---");
+  }
+  
+  if (allModals.length === 0) {
+    console.log("No modals found on the page");
+  }
+}
+
 // Make test functions available globally
 window.testHistoryCapture = testHistoryCapture;
 window.testTextareaFocus = testTextareaFocus;
+window.debugCurrentModals = debugCurrentModals;
+
