@@ -9,7 +9,7 @@ function debugLog(...args) {
   }
 }
 
-debugLog("Starting v0.3.1...");
+debugLog("Starting v0.3.1 - Fixed text container focus issue...");
 
 // Cleanup any existing instances
 if (window.linkedinAIHelperLoaded) {
@@ -498,7 +498,20 @@ function setupTextareaHandlers() {
     textarea.addEventListener('click', function(e) {
       debugLog("Textarea clicked");
       e.stopPropagation();
+      e.preventDefault();
+      
+      // Ensure the textarea is focusable and responsive
       this.focus();
+      
+      // Set cursor position at click location
+      var cursorPos = this.selectionStart;
+      if (cursorPos === undefined || cursorPos === null) {
+        // Fallback: place cursor at end of text
+        var len = this.value.length;
+        this.setSelectionRange(len, len);
+      }
+      
+      debugLog("Textarea focused and cursor positioned");
     });
     
     // Double click to select all
@@ -539,17 +552,9 @@ function setupTextareaHandlers() {
     // Initial character count
     updateCharCount();
     
-    // Force focus after a delay to ensure DOM is ready
-    setTimeout(function() {
-      if (textarea && !textarea.hasAttribute('data-focused-once')) {
-        textarea.setAttribute('data-focused-once', 'true');
-        textarea.focus();
-        // Place cursor at end
-        var len = textarea.value.length;
-        textarea.setSelectionRange(len, len);
-        debugLog("Initial focus and cursor position set");
-      }
-    }, 300);
+    // Remove the automatic focus code that was causing the issue
+    // The textarea should only focus when user explicitly clicks on it
+    debugLog("Textarea setup completed - ready for user interaction");
     
     // Additional safeguard - check if textarea is really interactive
     setTimeout(function() {
