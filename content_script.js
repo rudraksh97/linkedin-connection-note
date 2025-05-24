@@ -432,13 +432,13 @@ function setupTextareaHandlers() {
     // Mark as setup
     textarea.setAttribute('data-handlers-setup', 'true');
     
-    // Force enable all interaction properties
+    // Force enable all interaction properties immediately
     textarea.removeAttribute('disabled');
     textarea.removeAttribute('readonly');
     textarea.contentEditable = false; // Ensure it's not contenteditable
     textarea.tabIndex = 0;
     
-    // Override any conflicting styles
+    // Override any conflicting styles to ensure immediate interaction
     textarea.style.pointerEvents = 'auto';
     textarea.style.cursor = 'text';
     textarea.style.userSelect = 'text';
@@ -448,8 +448,17 @@ function setupTextareaHandlers() {
     textarea.style.resize = 'vertical';
     textarea.style.minHeight = '140px';
     textarea.style.maxHeight = '300px';
-    textarea.style.zIndex = '10';
+    textarea.style.zIndex = '1000';  // Higher z-index to ensure it's on top
     textarea.style.position = 'relative';
+    
+    // Ensure the textarea is immediately interactive
+    textarea.style.opacity = '1';
+    textarea.style.visibility = 'visible';
+    textarea.style.display = 'block';
+    
+    // Force remove any potential blocking styles
+    textarea.style.pointerEvents = 'auto !important';
+    textarea.style.touchAction = 'manipulation';
     
     // Character counter function
     function updateCharCount() {
@@ -473,7 +482,7 @@ function setupTextareaHandlers() {
     
     // Enhanced focus handler
     textarea.addEventListener('focus', function() {
-      debugLog("Textarea focused");
+      debugLog("Textarea focused - border should be blue now");
       this.style.borderColor = '#3b82f6';
       this.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1)';
       this.style.background = '#ffffff';
@@ -482,7 +491,7 @@ function setupTextareaHandlers() {
     
     // Enhanced blur handler
     textarea.addEventListener('blur', function() {
-      debugLog("Textarea blurred");
+      debugLog("Textarea blurred - border should be gray now");
       this.style.borderColor = '#e5e7eb';
       this.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
       this.style.background = '#ffffff';
@@ -496,22 +505,19 @@ function setupTextareaHandlers() {
     
     // Enhanced click handler
     textarea.addEventListener('click', function(e) {
-      debugLog("Textarea clicked");
+      debugLog("Textarea clicked - should focus immediately");
       e.stopPropagation();
-      e.preventDefault();
       
-      // Ensure the textarea is focusable and responsive
-      this.focus();
-      
-      // Set cursor position at click location
-      var cursorPos = this.selectionStart;
-      if (cursorPos === undefined || cursorPos === null) {
-        // Fallback: place cursor at end of text
-        var len = this.value.length;
-        this.setSelectionRange(len, len);
+      // Let the browser handle natural focus and cursor positioning
+      // Just ensure focus is set if for some reason it wasn't
+      if (document.activeElement !== this) {
+        debugLog("Textarea was not active, forcing focus");
+        this.focus();
+      } else {
+        debugLog("Textarea is already active");
       }
       
-      debugLog("Textarea focused and cursor positioned");
+      debugLog("Textarea click handled");
     });
     
     // Double click to select all
@@ -2365,5 +2371,35 @@ function testHistoryCapture() {
   }
 }
 
-// Make test function available globally
+// Test function for textarea focus issue
+function testTextareaFocus() {
+  debugLog("=== TEXTAREA FOCUS TEST ===");
+  
+  var textarea = document.getElementById('custom-message-input');
+  if (!textarea) {
+    debugLog("No textarea found!");
+    return;
+  }
+  
+  debugLog("Textarea found:", textarea);
+  debugLog("Textarea current styles:");
+  debugLog("- pointerEvents:", textarea.style.pointerEvents);
+  debugLog("- cursor:", textarea.style.cursor);
+  debugLog("- userSelect:", textarea.style.userSelect);
+  debugLog("- disabled:", textarea.disabled);
+  debugLog("- readonly:", textarea.readOnly);
+  debugLog("- tabIndex:", textarea.tabIndex);
+  
+  debugLog("Testing focus programmatically...");
+  textarea.focus();
+  
+  setTimeout(function() {
+    debugLog("After focus - activeElement:", document.activeElement === textarea ? "TEXTAREA" : document.activeElement.tagName);
+    debugLog("Test typing...");
+    textarea.value = "Test input - " + new Date().toLocaleTimeString();
+  }, 100);
+}
+
+// Make test functions available globally
 window.testHistoryCapture = testHistoryCapture;
+window.testTextareaFocus = testTextareaFocus;
