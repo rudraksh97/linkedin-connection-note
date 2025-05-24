@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Invitation notepad",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Generate and manage connection‑request notes with an AI‑powered widget.",
   "permissions": [
     "activeTab",
