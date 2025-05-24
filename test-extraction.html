@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LinkedIn Profile Extraction Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .profile-card { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .info-item { margin: 8px 0; }
+        button { background: #0077b5; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        #output { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 20px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>LinkedIn Profile Extraction Test</h1>
+    
+    <div class="profile-card">
+        <h2>Test Profile Data</h2>
+        <div class="info-item">
+            <h1 class="text-heading-xlarge">John Smith</h1>
+        </div>
+        <div class="info-item">
+            <div class="text-body-medium break-words">Senior Software Engineer at Google • San Francisco Bay Area</div>
+        </div>
+        <div class="info-item">
+            <div class="pv-text-details__location">San Francisco, California, United States</div>
+        </div>
+        <div class="info-item">
+            <a href="#" data-control-name="topcard_view_mutual_connections">5 mutual connections</a>
+        </div>
+        <div class="pv-about__summary-text">
+            Passionate software engineer with 8+ years of experience in full-stack development. 
+            I love building scalable web applications and mentoring junior developers.
+        </div>
+    </div>
+    
+    <button onclick="testExtraction()">Test Profile Extraction</button>
+    
+    <div id="output"></div>
+
+    <script>
+        // Copy the extraction function here for testing
+        function extractPersonInfo() {
+            var personInfo = {
+                name: '',
+                title: '',
+                company: '',
+                location: '',
+                industry: '',
+                mutualConnections: '',
+                about: ''
+            };
+            
+            try {
+                // Try multiple profile page selectors (LinkedIn changes these frequently)
+                var nameSelectors = [
+                    'h1.text-heading-xlarge',
+                    '.pv-text-details__name',
+                    '.ph5 h1',
+                    'h1[data-anonymize="person-name"]',
+                    '.pv-top-card--list h1',
+                    // More recent LinkedIn selectors
+                    '.pv-text-details__name .text-heading-xlarge',
+                    '.pv-top-card .pv-text-details__name',
+                    '.pv-top-card h1',
+                    '.text-heading-xlarge.inline',
+                    '.pv-text-details__name h1',
+                    // Generic fallbacks
+                    'main h1',
+                    'section h1',
+                    '[data-field="name"]',
+                    '.profile-photo-edit__name',
+                    '.pv-top-card--photo h1'
+                ];
+                
+                var profileName = null;
+                for (var i = 0; i < nameSelectors.length; i++) {
+                    profileName = document.querySelector(nameSelectors[i]);
+                    if (profileName) {
+                        var nameText = (profileName.textContent || profileName.innerText).trim();
+                        // Filter out non-name content
+                        if (nameText && 
+                            !nameText.toLowerCase().includes('linkedin') &&
+                            !nameText.toLowerCase().includes('profile') &&
+                            !nameText.toLowerCase().includes('connect') &&
+                            nameText.length > 2 &&
+                            nameText.length < 100) {
+                            personInfo.name = nameText;
+                            console.log("Found name using selector:", nameSelectors[i], "->", nameText);
+                            break;
+                        }
+                    }
+                }
+                
+                // Try to extract name from page title if still not found
+                if (!personInfo.name) {
+                    var pageTitle = document.title;
+                    if (pageTitle) {
+                        var titleMatch = pageTitle.match(/^([^|•\-\(]+)/);
+                        if (titleMatch) {
+                            var nameFromTitle = titleMatch[1].trim();
+                            if (nameFromTitle && 
+                                !nameFromTitle.toLowerCase().includes('linkedin') &&
+                                !nameFromTitle.toLowerCase().includes('profile') &&
+                                nameFromTitle.length > 2 &&
+                                nameFromTitle.length < 100) {
+                                personInfo.name = nameFromTitle;
+                                console.log("Found name from page title:", nameFromTitle);
+                            }
+                        }
+                    }
+                }
+                
+                // Extract job title and company
+                var titleElement = document.querySelector('.pv-text-details__sub-text') ||
+                                  document.querySelector('.text-body-medium.break-words') ||
+                                  document.querySelector('.pv-top-card--list .text-body-medium') ||
+                                  document.querySelector('[data-anonymize="job-title"]');
+                
+                if (titleElement) {
+                    var titleText = (titleElement.textContent || titleElement.innerText).trim();
+                    personInfo.title = titleText;
+                    
+                    // Try to extract company from title (usually after "at" or "•")
+                    var atMatch = titleText.match(/\bat\s+([^•\n]+)/i);
+                    var bulletMatch = titleText.match(/•\s*([^•\n]+)/);
+                    
+                    if (atMatch) {
+                        personInfo.company = atMatch[1].trim();
+                    } else if (bulletMatch) {
+                        personInfo.company = bulletMatch[1].trim();
+                    }
+                }
+                
+                // Extract location
+                var locationElement = document.querySelector('.pv-text-details__location') ||
+                                     document.querySelector('[data-anonymize="location"]') ||
+                                     document.querySelector('.pv-top-card--list-bullet.pv-top-card--list-bullet--has-bullet');
+                
+                if (locationElement) {
+                    personInfo.location = (locationElement.textContent || locationElement.innerText).trim();
+                }
+                
+                // Extract mutual connections info
+                var mutualElement = document.querySelector('[data-control-name="topcard_view_mutual_connections"]') ||
+                                   document.querySelector('.pv-top-card-v2-ctas .link') ||
+                                   document.querySelector('.pv-top-card--list .link');
+                
+                if (mutualElement) {
+                    var mutualText = (mutualElement.textContent || mutualElement.innerText).trim();
+                    if (mutualText.toLowerCase().includes('mutual') || mutualText.includes('connection')) {
+                        personInfo.mutualConnections = mutualText;
+                    }
+                }
+                
+                // Extract about/summary (first few lines)
+                var aboutElement = document.querySelector('.pv-about__summary-text') ||
+                                  document.querySelector('[data-field="summary"]') ||
+                                  document.querySelector('.pv-about-section .pv-about__summary-text .lt-line-clamp__raw-line');
+                
+                if (aboutElement) {
+                    var aboutText = (aboutElement.textContent || aboutElement.innerText).trim();
+                    // Limit to first 200 characters to keep prompt reasonable
+                    if (aboutText.length > 200) {
+                        aboutText = aboutText.substring(0, 200) + '...';
+                    }
+                    personInfo.about = aboutText;
+                }
+                
+                return personInfo;
+                
+            } catch (error) {
+                console.error("Error extracting person info:", error);
+                return personInfo;
+            }
+        }
+        
+        function testExtraction() {
+            var result = extractPersonInfo();
+            document.getElementById('output').textContent = 
+                'Extracted Information:\n' + 
+                JSON.stringify(result, null, 2);
+        }
+    </script>
+</body>
+</html> 

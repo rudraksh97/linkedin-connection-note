@@ -152,3 +152,365 @@ body {
   padding: 10px;
   border-radius: 4px;
 }
+
+/* Loading state styling */
+#linkedin-ai-note-helper-main-container #ai-suggestions-area p.ai-suggestion-loading {
+  font-weight: bold;
+  color: #0077b5 !important; /* LinkedIn blue */
+  background-color: #e6f2ff !important;
+  border: 1px solid #cce0ff !important;
+  padding: 10px;
+  border-radius: 4px;
+  text-align: center;
+  animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+/* Disabled button styling */
+#linkedin-ai-note-helper-main-container button#ai-suggestion-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* LinkedIn AI Note Helper - Enhanced Modern Styles */
+
+.linkedin-ai-helper {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  width: 480px !important;
+  max-height: 60vh !important;
+  height: auto !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+  z-index: 999999 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  color: #111827 !important;
+  padding: 20px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+/* Critical textarea fixes */
+.linkedin-ai-helper #custom-message-input {
+  pointer-events: auto !important;
+  cursor: text !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  position: relative !important;
+  z-index: 10 !important;
+  background: #ffffff !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  color: #111827 !important;
+  resize: vertical !important;
+  min-height: 140px !important;
+  max-height: 300px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.linkedin-ai-helper #custom-message-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  background: #ffffff !important;
+  outline: none !important;
+}
+
+.linkedin-ai-helper #custom-message-input:hover {
+  border-color: #d1d5db !important;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.linkedin-ai-helper #custom-message-input::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+.linkedin-ai-helper #custom-message-input:disabled,
+.linkedin-ai-helper #custom-message-input[readonly] {
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  cursor: not-allowed !important;
+}
+
+/* Enhanced button styles with hover effects */
+.linkedin-ai-helper button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  outline: none !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+/* Tab buttons with modern styling */
+.linkedin-ai-helper .main-tab {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.linkedin-ai-helper .main-tab:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.6) !important;
+  color: #374151 !important;
+  transform: translateY(-1px) !important;
+}
+
+.linkedin-ai-helper .main-tab.active::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8) !important;
+  border-radius: 1px !important;
+}
+
+/* Generate AI button enhanced styling */
+.linkedin-ai-helper #generate-ai-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px -8px rgba(59, 130, 246, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.linkedin-ai-helper #generate-ai-btn:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Save button styling */
+.linkedin-ai-helper #save-custom-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px -6px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Use button styling */
+.linkedin-ai-helper #use-current-btn:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px -6px rgba(139, 92, 246, 0.4) !important;
+}
+
+/* Clear button styling */
+.linkedin-ai-helper #clear-custom-btn:hover {
+  background: #4b5563 !important;
+  transform: scale(1.05) !important;
+}
+
+/* Close button enhanced styling */
+.linkedin-ai-helper #close-btn:hover {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+  transform: scale(1.1) !important;
+  color: #374151 !important;
+}
+
+/* Textarea enhanced styling */
+.linkedin-ai-helper textarea {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-family: inherit !important;
+}
+
+.linkedin-ai-helper textarea:hover {
+  border-color: #d1d5db !important;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Loading state for buttons */
+.linkedin-ai-helper button.loading {
+  position: relative !important;
+  color: transparent !important;
+  pointer-events: none !important;
+}
+
+.linkedin-ai-helper button.loading::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: -8px 0 0 -8px !important;
+  border: 2px solid transparent !important;
+  border-top-color: currentColor !important;
+  border-radius: 50% !important;
+  animation: spin 1s linear infinite !important;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg) !important;
+  }
+}
+
+/* Modal overlay styling */
+.linkedin-ai-helper-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999999 !important;
+  animation: fadeIn 0.3s ease-out !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0 !important;
+  }
+  to {
+    opacity: 1 !important;
+  }
+}
+
+/* Enhanced scrollbar styling */
+.linkedin-ai-helper *::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.linkedin-ai-helper *::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+  border-radius: 3px !important;
+}
+
+.linkedin-ai-helper *::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 3px !important;
+}
+
+.linkedin-ai-helper *::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* Message items in saved/history tabs */
+.linkedin-ai-helper .message-item {
+  transition: all 0.2s ease !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  margin-bottom: 12px !important;
+  background: #fafbfc !important;
+}
+
+.linkedin-ai-helper .message-item:hover {
+  border-color: #d1d5db !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px) !important;
+  background: #ffffff !important;
+}
+
+/* Delete button styling */
+.linkedin-ai-helper .delete-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.linkedin-ai-helper .delete-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 4px 12px -4px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Success feedback enhanced styling */
+.linkedin-ai-helper .success-feedback {
+  animation: slideInUp 0.5s ease-out !important;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0 !important;
+    transform: translateY(20px) !important;
+  }
+  to {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .linkedin-ai-helper {
+    width: calc(100vw - 20px) !important;
+    left: 10px !important;
+    right: 10px !important;
+    max-height: 90vh !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .linkedin-ai-helper {
+    border: 2px solid #000000 !important;
+  }
+  
+  .linkedin-ai-helper button {
+    border: 1px solid #000000 !important;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .linkedin-ai-helper,
+  .linkedin-ai-helper * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .linkedin-ai-helper {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+  }
+  
+  .linkedin-ai-helper h3 {
+    color: #f9fafb !important;
+  }
+  
+  .linkedin-ai-helper textarea {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+  }
+  
+  .linkedin-ai-helper textarea::placeholder {
+    color: #9ca3af !important;
+  }
+}

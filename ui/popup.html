@@ -1,33 +1,265 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LinkedIn AI Note Helper</title>
-  <!-- The style.css is injected by content_script via manifest.json,
-       but can also be linked here for standalone testing/development if needed. -->
+  <meta charset="UTF-8">
+  <title>Invitation notepad</title>
   <link rel="stylesheet" type="text/css" href="../css/style.css">
+  <style>
+    body {
+      width: 350px;
+      min-height: 400px;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .container {
+      padding: 20px;
+    }
+    
+    .popup-header {
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 15px;
+    }
+    
+    .popup-header h2 {
+      margin: 0 0 5px 0;
+      color: #1a1a1a;
+      font-size: 18px;
+    }
+    
+    .version {
+      margin: 0;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    
+    .api-key-section, .saved-messages-section, .quick-actions {
+      margin-bottom: 20px;
+    }
+    
+    .api-key-section h3, .saved-messages-section h3, .quick-actions h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #374151;
+    }
+    
+    .status-indicator {
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    
+    .success { color: #10b981; }
+    .warning { color: #f59e0b; }
+    .error { color: #ef4444; }
+    .loading { color: #6b7280; }
+    
+    .count {
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+    
+    .btn-primary {
+      background: #0077b5;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #005885;
+    }
+    
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+    
+    .btn-outline {
+      background: transparent;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    
+    .btn-outline:hover {
+      background: #f9fafb;
+    }
+    
+    .footer {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+    }
+    
+    .footer p {
+      margin: 0;
+      font-size: 11px;
+      color: #9ca3af;
+      line-height: 1.4;
+    }
+    
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    
+    .modal {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal.large {
+      max-width: 500px;
+      max-height: 400px;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #6b7280;
+    }
+    
+    .api-key-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-family: monospace;
+      margin: 10px 0;
+      box-sizing: border-box;
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 5px 0;
+    }
+    
+    .help-text a {
+      color: #0077b5;
+    }
+    
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .modal-footer .btn {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    
+    .messages-list {
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    
+    .message-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .message-text {
+      font-size: 13px;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    
+    .message-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #6b7280;
+    }
+    
+    .delete-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 10001;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .notification.show {
+      transform: translateX(0);
+    }
+    
+    .notification.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .notification.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <div class="left-pane">
-      <h2>Used Notes History</h2>
-      <div id="used-notes-list">
-        <!-- Used notes will be populated here by content_script.js -->
-        <p>No notes used yet.</p>
-      </div>
-    </div>
-    <div class="right-pane">
-      <h2>AI Suggestions</h2>
-      <div id="ai-suggestions-area">
-        <!-- AI suggestions will be populated here by content_script.js -->
-        <p>Click the button to get suggestions.</p>
-      </div>
-      <button id="ai-suggestion-btn">Get AI Suggestion (Test)</button>
-    </div>
+    <!-- Content will be dynamically generated by popup.js -->
   </div>
-  <!-- popup.js is not strictly needed if content_script.js handles all logic,
-       but can be used if the popup becomes more complex and is opened as a browser action.
-       For now, we assume content_script.js injects this HTML and handles its events.
   <script src="popup.js"></script>
-  -->
 </body>
 </html>
