@@ -1,216 +1,117 @@
-# 🤝 Invitation Notepad
+# Invitation Notepad
 
-A powerful Chrome extension that helps you craft personalized LinkedIn connection messages with AI assistance. Never send generic connection requests again!
+A LinkedIn Chrome extension that helps you craft professional connection request messages using AI assistance and organize them with a comprehensive message library system.
 
-![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Platform](https://img.shields.io/badge/platform-Chrome%20Extension-yellow.svg)
+## Features
 
-## ✨ Features
+### 🤖 AI-Powered Message Creation
+- **Write with AI**: Generate professional LinkedIn connection messages using OpenAI's GPT-3.5
+- **Instruction-Based Generation**: Provide instructions like "mention my startup experience" and get a tailored connection message
+- **Text Improvement**: AI automatically frames any text as a proper LinkedIn connection request
+- **Smart Prompts**: Context-aware prompts for different professional scenarios
 
-### 🤖 **AI-Powered Message Generation**
-- Generate professional connection messages using OpenAI's GPT
-- Generic message templates optimized for different professional contexts
-- LinkedIn Terms of Service compliant (no profile data extraction)
-- Multiple message types: standard connections and referral requests
+### 📁 Message Library & Organization
+- **Save Messages**: Build a personal library of connection messages
+- **Category System**: Organize messages with categories (General, Referral, or custom categories)
+- **Category Filtering**: Filter saved messages by category using visual pills
+- **Category Management**: Create, change, and manage categories with an intuitive interface
+- **Duplicate Prevention**: Automatic detection and prevention of duplicate messages within categories
 
-### 📝 **Message Management**
-- **Create Tab**: Compose custom messages with real-time character counting
-- **Saved Tab**: Build your personal library of reusable messages
-- **History Tab**: Track all sent messages for future reference
-- One-click message insertion into LinkedIn's connection form
+### 💼 Professional Integration
+- **LinkedIn ToS Compliant**: No profile data extraction or scraping
+- **Modal Integration**: Seamlessly integrates with LinkedIn's connection request modals
+- **Auto-Insert**: One-click insertion of messages into LinkedIn's message field
+- **Character Limits**: Respects LinkedIn's character limits (200-250 characters)
 
-### 🎯 **Smart Integration**
-- Automatically detects LinkedIn connection modals
-- Positions itself intelligently next to the connection form
-- Seamless integration with LinkedIn's interface
-- No page reloads or navigation disruption
+### 🎨 Modern Interface
+- **Clean Design**: Modern, intuitive interface with pill-based navigation
+- **Responsive Layout**: Adapts to different screen sizes and positions
+- **Visual Feedback**: Clear success/error messages and loading states
+- **Hover Effects**: Interactive elements with smooth animations
 
-### 🔒 **Privacy & Security**
-- Your API key is stored securely in your browser
-- No data is sent to external servers (except OpenAI for AI generation)
-- Messages are stored locally in Chrome storage
-- Open source and transparent
+## Installation
 
-## 🚀 Installation
+1. Clone this repository or download the ZIP file
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable "Developer mode" in the top right corner
+4. Click "Load unpacked" and select the extension folder
+5. Get your OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+6. The extension will prompt you to enter your API key on first use
 
-### Option 1: Chrome Web Store (Recommended)
-*Coming soon - extension is currently in development*
+## Usage
 
-### Option 2: Developer Mode Installation
+### Getting Started
+1. Navigate to LinkedIn and click "Connect" on any profile
+2. When the connection modal opens, the Invitation Notepad will appear
+3. Enter your OpenAI API key when prompted (stored securely in your browser)
 
-1. **Download the extension**
-   ```bash
-   git clone https://github.com/yourusername/linkedin-connection-note.git
-   # or download as ZIP
-   ```
+### Creating Messages
+1. **AI Generation**: Click "🤖 Write with AI" to generate a professional message
+2. **Custom Instructions**: Type instructions like "mention my background in marketing" and click "🤖 Write with AI"
+3. **Manual Writing**: Type your message directly in the textarea
+4. **Save**: Click "💾 Save" to add messages to your library with category selection
+5. **Use**: Click "✉️ Use" to insert the message into LinkedIn's field
 
-2. **Open Chrome Extensions**
-   - Navigate to `chrome://extensions/`
-   - Enable "Developer mode" (toggle in top-right)
+### Managing Your Library
+1. **Switch to Saved Tab**: Click the "Saved" tab to view your message library
+2. **Filter by Category**: Use category pills to filter messages
+3. **Change Categories**: Click the "✏️" button on any message to change its category
+4. **Delete Messages**: Click the "×" button to remove messages
+5. **Create Categories**: Use "➕ New Category" when saving or changing categories
 
-3. **Load the extension**
-   - Click "Load unpacked"
-   - Select the extension folder
-   - The extension icon should appear in your Chrome toolbar
+## Technical Details
 
-4. **Set up your OpenAI API Key** (optional, for AI features)
-   - Click the extension icon
-   - Follow the setup wizard
-   - Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+### Architecture
+- **Content Script**: Handles UI injection and LinkedIn integration
+- **Background Script**: Manages OpenAI API calls and data storage
+- **Template System**: Modular HTML templates for consistent UI
+- **Storage**: Chrome extension storage for API keys and messages
 
-## 📖 Usage
+### Security & Privacy
+- **Local Storage**: All data stored locally in your browser
+- **No Data Collection**: Extension doesn't collect or transmit personal data
+- **API Key Security**: OpenAI API key stored securely in Chrome's extension storage
+- **LinkedIn ToS Compliant**: No profile scraping or automated data extraction
 
-### Basic Usage
-
-1. **Navigate to LinkedIn** and find someone you want to connect with
-2. **Click "Connect"** to open the connection modal
-3. **The extension will automatically appear** next to the modal
-4. **Choose your approach**:
-   - Write a custom message in the "Create" tab
-   - Use a saved message from your library
-   - Generate an AI message based on their profile
-
-### Creating Custom Messages
-
-1. Switch to the **"Create"** tab
-2. Type your message in the text area (300 character limit)
-3. Use the buttons to:
-   - **Generate**: Create AI-powered message
-   - **Save**: Add to your message library
-   - **Use**: Insert into LinkedIn's form
-   - **Clear**: Start over
-
-### AI Message Generation
-
-1. Click **"Generate"** button for standard connection messages or **"Ask Referral"** for referral requests
-2. The AI will create a professional, ToS-compliant message template
-3. Review and edit the generated message if needed
-4. Click **"Use"** to insert it into LinkedIn
-
-### Managing Your Message Library
-
-- **Saved Messages**: Access your reusable message templates
-- **History**: View all messages you've sent
-- **Quick Actions**: Export, import, or clear your data
-
-## ⚙️ Configuration
-
-### OpenAI API Setup
-
-1. **Get an API Key**:
-   - Visit [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Create an account or sign in
-   - Generate a new API key
-
-2. **Add to Extension**:
-   - Click the extension icon
-   - Enter your API key in the settings
-   - Save and start using AI features
-
-### Customization Options
-
-- **Message types**: Standard connections and referral requests
-- **Character limits**: Automatic counting and warnings
-- **Auto-positioning**: Extension intelligently positions itself
-- **Dark mode**: Automatically adapts to your browser theme
-
-## 🛠️ Development
-
-### Project Structure
-
+### File Structure
 ```
 linkedin-connection-note/
-├── manifest.json          # Extension manifest
-├── background.js          # Service worker
-├── content_script.js      # Main functionality
-├── css/
-│   └── style.css         # Styling
+├── manifest.json          # Extension configuration
+├── content_script.js      # Main functionality and UI
+├── background.js          # API calls and storage management
 ├── ui/
-│   ├── popup.html        # Extension popup
-│   ├── popup.js          # Popup functionality
-│   └── templates.js      # HTML templates
-└── README.md
+│   └── templates.js       # HTML templates
+├── css/                   # Styling (if any)
+└── README.md             # This file
 ```
 
-### Building from Source
+## API Key Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/linkedin-connection-note.git
-   cd linkedin-connection-note
-   ```
+1. Visit [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Create a new API key
+3. Copy the key (starts with `sk-`)
+4. When prompted by the extension, paste your API key
+5. The key is stored securely and used only for generating messages
 
-2. **Install dependencies** (if any)
-   ```bash
-   npm install  # if package.json exists
-   ```
+## Version Information
 
-3. **Load in Chrome**
-   - Follow the installation steps above
-   - Enable developer mode and load unpacked
+- **Current Version**: 0.5.0
+- **Chrome Extension API**: Manifest V3
+- **OpenAI Model**: GPT-3.5 Turbo
+- **LinkedIn Integration**: ToS Compliant (no data extraction)
 
-### Contributing
+## Support
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+If you encounter any issues:
+1. Ensure your OpenAI API key is valid and has credits
+2. Check that you're on a LinkedIn connection request modal
+3. Reload the page and try again
+4. Check browser console for any error messages
 
-## 🐛 Troubleshooting
+## License
 
-### Common Issues
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-**Extension not appearing on LinkedIn**
-- Refresh the LinkedIn page
-- Check that you're on a connection modal
-- Ensure the extension is enabled in Chrome
+## Disclaimer
 
-**AI generation not working**
-- Verify your OpenAI API key is correctly entered
-- Check your OpenAI account has available credits
-- Ensure you have an internet connection
-
-**Messages not saving**
-- Check Chrome storage permissions
-- Try refreshing the page
-- Clear extension data and restart
-
-### Debug Mode
-
-Enable debug logging by opening the console (F12) and running:
-```javascript
-// Test textarea functionality
-testTextareaFocus()
-
-// Check extension state
-console.log("Extension loaded:", window.linkedinAIHelperLoaded)
-```
-
-## 📊 Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/linkedin-connection-note/issues)
-- **Features**: [Feature Requests](https://github.com/yourusername/linkedin-connection-note/discussions)
-- **Email**: support@yourwebsite.com
-
-## 🙏 Acknowledgments
-
-- OpenAI for the GPT API
-- LinkedIn for the platform
-- Chrome Extensions team for the framework
-- All contributors and beta testers
-
----
-
-**Made with ❤️ for better networking**
-
-*Note: This extension is not affiliated with LinkedIn. LinkedIn is a trademark of LinkedIn Corporation.*
+This extension is not affiliated with or endorsed by LinkedIn Corporation. Use responsibly and in accordance with LinkedIn's Terms of Service.
