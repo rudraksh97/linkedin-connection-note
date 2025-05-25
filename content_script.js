@@ -636,8 +636,9 @@ function setupUnifiedHandlers() {
       savedTab.onclick = function() {
         try {
           switchMainTab('saved');
-          // Reload saved messages when switching to saved tab
+          // Reload saved messages and category pills when switching to saved tab
           setTimeout(function() {
+            loadCategoryPills();
             loadSavedMessages();
           }, 100);
         } catch (error) {
@@ -736,6 +737,7 @@ function setupUnifiedHandlers() {
       // Check if chrome context is still valid before loading data
       if (chrome && chrome.runtime && chrome.runtime.id) {
         loadSavedMessages();
+        loadCategoryPills();
         debugLog("Initial data loading completed");
       } else {
         console.log('Chrome extension context invalidated, skipping data load');
@@ -801,10 +803,7 @@ function setupMessageCreationHandlers() {
           var input = document.getElementById('custom-message-input');
           var message = input && input.value ? input.value.trim() : '';
           if (message) {
-            saveCustomMessage(message);
-            if (input) {
-              input.value = '';
-            }
+            showCategorySelectionModal(message, input);
           }
         } catch (error) {
           console.error('Error in save button handler:', error);
@@ -991,8 +990,133 @@ function switchTab(tab) {
   }
 }
 
-// Save custom message
-function saveCustomMessage(message) {
+// Show category selection modal
+function showCategorySelectionModal(message, inputElement) {
+  // Create modal overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'category-selection-overlay';
+  overlay.style.cssText = 
+    'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); ' +
+    'z-index:20001; display:flex; align-items:center; justify-content:center;';
+  
+  overlay.innerHTML = getTemplate('categorySelectionModal');
+  document.body.appendChild(overlay);
+  
+  // Set up handlers
+  setTimeout(function() {
+    setupCategorySelectionModalHandlers(message, inputElement, overlay);
+  }, 100);
+}
+
+// Set up category selection modal handlers
+function setupCategorySelectionModalHandlers(message, inputElement, overlay) {
+  var pillsContainer = document.getElementById('category-selection-pills');
+  var customSection = document.getElementById('custom-category-section');
+  var customInput = document.getElementById('custom-category-input');
+  var saveBtn = document.getElementById('save-with-category-btn');
+  var cancelBtn = document.getElementById('cancel-category-btn');
+  
+  if (!pillsContainer || !saveBtn || !cancelBtn) return;
+  
+  var selectedCategory = '';
+  
+  // Load existing categories and populate pills
+  loadCategoriesForSelectionPills(pillsContainer);
+  
+  // Custom category input handler
+  if (customInput) {
+    customInput.oninput = function() {
+      var value = this.value.trim();
+      saveBtn.disabled = value === '';
+    };
+    
+    customInput.onkeypress = function(e) {
+      if (e.key === 'Enter' && !saveBtn.disabled) {
+        saveBtn.click();
+      }
+    };
+  }
+  
+  // Set up pill click handlers (delegated event handling)
+  pillsContainer.onclick = function(e) {
+    var target = e.target;
+    if (target && target.classList.contains('category-selection-pill')) {
+      var category = target.getAttribute('data-category');
+      
+      // Reset all pills
+      var allPills = pillsContainer.querySelectorAll('.category-selection-pill');
+      allPills.forEach(function(pill) {
+        pill.style.background = '#f8fafc';
+        pill.style.color = '#64748b';
+        pill.style.border = '1px solid #e2e8f0';
+      });
+      
+      // Activate selected pill
+      target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+      target.style.color = 'white';
+      target.style.border = 'none';
+      
+      selectedCategory = category;
+      
+      if (category === 'custom') {
+        customSection.style.display = 'block';
+        saveBtn.disabled = true;
+        customInput.focus();
+      } else {
+        customSection.style.display = 'none';
+        saveBtn.disabled = false;
+      }
+    }
+  };
+  
+  // Save button handler
+  saveBtn.onclick = function() {
+    var finalCategory = '';
+    
+    if (selectedCategory === 'custom') {
+      finalCategory = customInput.value.trim();
+      if (!finalCategory) {
+        showLeftPanelFeedback('Please enter a category name', 'error');
+        return;
+      }
+    } else if (selectedCategory) {
+      finalCategory = selectedCategory;
+    } else {
+      showLeftPanelFeedback('Please select a category', 'error');
+      return;
+    }
+    
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
+    saveCustomMessage(message, finalCategory, function(success) {
+      if (success) {
+        overlay.remove();
+        if (inputElement) {
+          inputElement.value = '';
+        }
+      } else {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Message';
+      }
+    });
+  };
+  
+  // Cancel button handler
+  cancelBtn.onclick = function() {
+    overlay.remove();
+  };
+  
+  // Close on overlay click
+  overlay.onclick = function(e) {
+    if (e.target === overlay) {
+      overlay.remove();
+    }
+  };
+}
+
+// Save custom message with category
+function saveCustomMessage(message, category, callback) {
   // Check chrome context
   var chromeAvailable = false;
   try {
@@ -1003,30 +1127,223 @@ function saveCustomMessage(message) {
   
   if (!chromeAvailable) {
     showLeftPanelFeedback('Extension context lost. Please reload the page.', 'error');
+    if (callback) callback(false);
     return;
   }
   
   try {
     chrome.runtime.sendMessage({
       action: 'saveCustomMessage',
-      message: message
+      message: message,
+      category: category || 'General'
     }, function(response) {
       if (chrome.runtime.lastError) {
         showLeftPanelFeedback('Extension error. Please reload the page.', 'error');
+        if (callback) callback(false);
         return;
       }
       
       if (response && response.success) {
         loadSavedMessages(); // Refresh the list
+        loadCategoryPills(); // Refresh category pills
         showLeftPanelFeedback('Message saved successfully!', 'success');
+        if (callback) callback(true);
       } else {
-        showLeftPanelFeedback('Failed to save message', 'error');
+        var errorMsg = response && response.error ? response.error : 'Failed to save message';
+        showLeftPanelFeedback(errorMsg, 'error');
+        if (callback) callback(false);
       }
     });
   } catch (sendError) {
     showLeftPanelFeedback('Failed to communicate with extension. Please reload the page.', 'error');
     console.error('Chrome runtime sendMessage error in saveCustomMessage:', sendError);
+    if (callback) callback(false);
   }
+}
+
+// Load categories for selection pills
+function loadCategoriesForSelectionPills(pillsContainer) {
+  if (!chrome || !chrome.runtime) {
+    return;
+  }
+  
+  chrome.runtime.sendMessage({ action: 'getCategories' }, function(response) {
+    if (chrome.runtime.lastError) {
+      console.error('Chrome runtime error:', chrome.runtime.lastError);
+      return;
+    }
+    
+    if (response && response.categories) {
+      // Clear existing pills and rebuild
+      pillsContainer.innerHTML = '';
+      
+      // Add pills for all categories
+      response.categories.forEach(function(category) {
+        var icon = category === 'General' ? '📝' : category === 'Referral' ? '🤝' : '📁';
+        var pill = createCategorySelectionPill(category, icon + ' ' + category);
+        pillsContainer.appendChild(pill);
+      });
+      
+      // Add "New Category" pill at the end
+      var newCategoryPill = createCategorySelectionPill('custom', '➕ New Category');
+      pillsContainer.appendChild(newCategoryPill);
+    }
+  });
+}
+
+// Create category selection pill element
+function createCategorySelectionPill(category, text) {
+  var pill = document.createElement('button');
+  pill.className = 'category-selection-pill';
+  pill.setAttribute('data-category', category);
+  pill.style.cssText = 
+    'padding:10px 16px; background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; ' +
+    'border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; ' +
+    'transition:all 0.2s ease; white-space:nowrap;';
+  
+  pill.textContent = text;
+  
+  // Add hover effects
+  pill.onmouseover = function() {
+    if (this.style.background === '#f8fafc' || this.style.background === '') {
+      this.style.background = '#e2e8f0';
+      this.style.color = '#374151';
+    }
+  };
+  
+  pill.onmouseout = function() {
+    if (this.style.background === '#e2e8f0' || this.style.background === 'rgb(226, 232, 240)') {
+      this.style.background = '#f8fafc';
+      this.style.color = '#64748b';
+    }
+  };
+  
+  return pill;
+}
+
+// Load category pills
+function loadCategoryPills() {
+  var pillsContainer = document.getElementById('category-pills');
+  if (!pillsContainer || !chrome || !chrome.runtime) {
+    return;
+  }
+  
+  chrome.runtime.sendMessage({ action: 'getCategories' }, function(response) {
+    if (chrome.runtime.lastError) {
+      console.error('Chrome runtime error:', chrome.runtime.lastError);
+      return;
+    }
+    
+    if (response && response.categories) {
+      // Get current active category
+      var activePill = pillsContainer.querySelector('.category-pill.active');
+      var activeCategory = activePill ? activePill.getAttribute('data-category') : 'all';
+      
+      // Clear existing pills
+      pillsContainer.innerHTML = '';
+      
+      // Add "All Messages" pill
+      var allPill = createCategoryPill('all', '📋 All Messages', activeCategory === 'all');
+      pillsContainer.appendChild(allPill);
+      
+      // Add category pills
+      response.categories.forEach(function(category) {
+        var icon = category === 'General' ? '📝' : category === 'Referral' ? '🤝' : '📁';
+        var pill = createCategoryPill(category, icon + ' ' + category, activeCategory === category);
+        pillsContainer.appendChild(pill);
+      });
+    }
+  });
+}
+
+// Create category pill element
+function createCategoryPill(category, text, isActive) {
+  var pill = document.createElement('button');
+  pill.className = 'category-pill' + (isActive ? ' active' : '');
+  pill.setAttribute('data-category', category);
+  pill.style.cssText = 
+    'padding:8px 16px; ' +
+    (isActive ? 
+      'background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white;' : 
+      'background:#f8fafc; color:#64748b; border:1px solid #e2e8f0;'
+    ) +
+    ' border:none; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600; ' +
+    'transition:all 0.2s ease; white-space:nowrap;';
+  
+  pill.textContent = text;
+  
+  // Add click handler
+  pill.onclick = function() {
+    filterMessagesByCategory(category);
+    
+    // Update active state
+    var allPills = document.querySelectorAll('.category-pill');
+    allPills.forEach(function(p) {
+      p.classList.remove('active');
+      p.style.background = '#f8fafc';
+      p.style.color = '#64748b';
+      p.style.border = '1px solid #e2e8f0';
+    });
+    
+    this.classList.add('active');
+    this.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+    this.style.color = 'white';
+    this.style.border = 'none';
+  };
+  
+  // Add hover effects
+  if (!isActive) {
+    pill.onmouseover = function() {
+      if (!this.classList.contains('active')) {
+        this.style.background = '#e2e8f0';
+        this.style.color = '#374151';
+      }
+    };
+    
+    pill.onmouseout = function() {
+      if (!this.classList.contains('active')) {
+        this.style.background = '#f8fafc';
+        this.style.color = '#64748b';
+      }
+    };
+  }
+  
+  return pill;
+}
+
+// Filter messages by category
+function filterMessagesByCategory(category) {
+  if (!chrome || !chrome.runtime) {
+    return;
+  }
+  
+  chrome.runtime.sendMessage({ 
+    action: 'getSavedMessages',
+    category: category === 'all' ? null : category
+  }, function(response) {
+    if (chrome.runtime.lastError) {
+      console.error('Chrome runtime error:', chrome.runtime.lastError);
+      return;
+    }
+    
+    var container = document.getElementById('saved-messages-list');
+    if (!container) return;
+    
+    if (response && response.messages && response.messages.length > 0) {
+      container.innerHTML = '';
+      for (var i = 0; i < response.messages.length; i++) {
+        createSavedMessageElement(response.messages[i], container);
+      }
+    } else {
+      var categoryName = category === 'all' ? 'messages' : category + ' messages';
+      container.innerHTML = 
+        '<div style="text-align:center; padding:30px; color:#9ca3af; font-size:14px;">' +
+          '<div style="margin-bottom:8px; font-size:24px;">📝</div>' +
+          '<p style="margin:0;">No ' + categoryName + ' yet</p>' +
+          '<p style="margin:4px 0 0 0; font-size:12px;">Create and save messages in the Create tab</p>' +
+        '</div>';
+    }
+  });
 }
 
 // Load saved messages
@@ -1115,15 +1432,35 @@ function createSavedMessageElement(messageData, container) {
   textElement.style.color = '#374151';
   textElement.textContent = messageData.message;
   
+  // Category tag
+  var categoryTag = document.createElement('div');
+  categoryTag.style.display = 'inline-block';
+  categoryTag.style.padding = '2px 8px';
+  categoryTag.style.backgroundColor = '#e0f2fe';
+  categoryTag.style.color = '#0369a1';
+  categoryTag.style.fontSize = '10px';
+  categoryTag.style.fontWeight = '600';
+  categoryTag.style.borderRadius = '12px';
+  categoryTag.style.marginBottom = '8px';
+  var categoryIcon = messageData.category === 'General' ? '📝' : messageData.category === 'Referral' ? '🤝' : '📁';
+  categoryTag.textContent = categoryIcon + ' ' + (messageData.category || 'General');
+  
   var actionRow = document.createElement('div');
   actionRow.style.display = 'flex';
   actionRow.style.justifyContent = 'space-between';
   actionRow.style.alignItems = 'center';
   
+  var infoContainer = document.createElement('div');
+  infoContainer.style.display = 'flex';
+  infoContainer.style.flexDirection = 'column';
+  infoContainer.style.gap = '4px';
+  
   var dateElement = document.createElement('span');
   dateElement.style.fontSize = '11px';
   dateElement.style.color = '#9ca3af';
   dateElement.textContent = new Date(messageData.timestamp).toLocaleDateString();
+  
+  infoContainer.appendChild(dateElement);
   
   var buttonContainer = document.createElement('div');
   buttonContainer.style.display = 'flex';
@@ -1145,6 +1482,23 @@ function createSavedMessageElement(messageData, container) {
     useNote(messageData.message);
   };
   
+  var changeCategoryBtn = document.createElement('button');
+  changeCategoryBtn.style.padding = '4px 8px';
+  changeCategoryBtn.style.backgroundColor = '#3b82f6';
+  changeCategoryBtn.style.color = 'white';
+  changeCategoryBtn.style.border = 'none';
+  changeCategoryBtn.style.borderRadius = '4px';
+  changeCategoryBtn.style.cursor = 'pointer';
+  changeCategoryBtn.style.fontSize = '11px';
+  changeCategoryBtn.style.fontWeight = '600';
+  changeCategoryBtn.textContent = '✏️';
+  changeCategoryBtn.title = 'Change Category';
+  
+  changeCategoryBtn.onclick = function(e) {
+    e.stopPropagation();
+    showChangeCategoryModal(messageData);
+  };
+  
   var deleteBtn = document.createElement('button');
   deleteBtn.style.padding = '4px 8px';
   deleteBtn.style.backgroundColor = '#ef4444';
@@ -1161,16 +1515,239 @@ function createSavedMessageElement(messageData, container) {
   };
   
   buttonContainer.appendChild(useBtn);
+  buttonContainer.appendChild(changeCategoryBtn);
   buttonContainer.appendChild(deleteBtn);
-  actionRow.appendChild(dateElement);
+  actionRow.appendChild(infoContainer);
   actionRow.appendChild(buttonContainer);
   
+  wrapper.appendChild(categoryTag);
   wrapper.appendChild(textElement);
   wrapper.appendChild(actionRow);
   container.appendChild(wrapper);
 }
 
 
+
+// Show change category modal
+function showChangeCategoryModal(messageData) {
+  // Create modal overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'change-category-overlay';
+  overlay.style.cssText = 
+    'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); ' +
+    'z-index:20001; display:flex; align-items:center; justify-content:center;';
+  
+  overlay.innerHTML = getTemplate('changeCategoryModal');
+  document.body.appendChild(overlay);
+  
+  // Set up handlers
+  setTimeout(function() {
+    setupChangeCategoryModalHandlers(messageData, overlay);
+  }, 100);
+}
+
+// Set up change category modal handlers
+function setupChangeCategoryModalHandlers(messageData, overlay) {
+  var pillsContainer = document.getElementById('change-category-selection-pills');
+  var customSection = document.getElementById('change-custom-category-section');
+  var customInput = document.getElementById('change-custom-category-input');
+  var saveBtn = document.getElementById('change-category-save-btn');
+  var cancelBtn = document.getElementById('change-category-cancel-btn');
+  
+  if (!pillsContainer || !saveBtn || !cancelBtn) return;
+  
+  var selectedCategory = '';
+  
+  // Load existing categories and populate pills
+  loadCategoriesForChangeCategoryPills(pillsContainer, messageData.category);
+  
+  // Custom category input handler
+  if (customInput) {
+    customInput.oninput = function() {
+      var value = this.value.trim();
+      saveBtn.disabled = value === '';
+    };
+    
+    customInput.onkeypress = function(e) {
+      if (e.key === 'Enter' && !saveBtn.disabled) {
+        saveBtn.click();
+      }
+    };
+  }
+  
+  // Set up pill click handlers (delegated event handling)
+  pillsContainer.onclick = function(e) {
+    var target = e.target;
+    if (target && target.classList.contains('change-category-selection-pill')) {
+      var category = target.getAttribute('data-category');
+      
+      // Reset all pills
+      var allPills = pillsContainer.querySelectorAll('.change-category-selection-pill');
+      allPills.forEach(function(pill) {
+        pill.style.background = '#f8fafc';
+        pill.style.color = '#64748b';
+        pill.style.border = '1px solid #e2e8f0';
+      });
+      
+      // Activate selected pill
+      target.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+      target.style.color = 'white';
+      target.style.border = 'none';
+      
+      selectedCategory = category;
+      
+      if (category === 'custom') {
+        customSection.style.display = 'block';
+        saveBtn.disabled = true;
+        customInput.focus();
+      } else {
+        customSection.style.display = 'none';
+        saveBtn.disabled = false;
+      }
+    }
+  };
+  
+  // Save button handler
+  saveBtn.onclick = function() {
+    var finalCategory = '';
+    
+    if (selectedCategory === 'custom') {
+      finalCategory = customInput.value.trim();
+      if (!finalCategory) {
+        showLeftPanelFeedback('Please enter a category name', 'error');
+        return;
+      }
+    } else if (selectedCategory) {
+      finalCategory = selectedCategory;
+    } else {
+      showLeftPanelFeedback('Please select a category', 'error');
+      return;
+    }
+    
+    if (finalCategory === messageData.category) {
+      showLeftPanelFeedback('Message is already in this category', 'error');
+      return;
+    }
+    
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Changing...';
+    
+    changeSavedMessageCategory(messageData.id, finalCategory, function(success) {
+      if (success) {
+        overlay.remove();
+      } else {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Change Category';
+      }
+    });
+  };
+  
+  // Cancel button handler
+  cancelBtn.onclick = function() {
+    overlay.remove();
+  };
+  
+  // Close on overlay click
+  overlay.onclick = function(e) {
+    if (e.target === overlay) {
+      overlay.remove();
+    }
+  };
+}
+
+// Load categories for change category pills
+function loadCategoriesForChangeCategoryPills(pillsContainer, currentCategory) {
+  if (!chrome || !chrome.runtime) {
+    return;
+  }
+  
+  chrome.runtime.sendMessage({ action: 'getCategories' }, function(response) {
+    if (chrome.runtime.lastError) {
+      console.error('Chrome runtime error:', chrome.runtime.lastError);
+      return;
+    }
+    
+    if (response && response.categories) {
+      // Clear existing pills
+      pillsContainer.innerHTML = '';
+      
+      // Add pills for all categories except current one
+      response.categories.forEach(function(category) {
+        if (category !== currentCategory) {
+          var icon = category === 'General' ? '📝' : category === 'Referral' ? '🤝' : '📁';
+          var pill = createChangeCategorySelectionPill(category, icon + ' ' + category);
+          pillsContainer.appendChild(pill);
+        }
+      });
+      
+      // Add "New Category" pill at the end
+      var newCategoryPill = createChangeCategorySelectionPill('custom', '➕ New Category');
+      pillsContainer.appendChild(newCategoryPill);
+    }
+  });
+}
+
+// Create change category selection pill element
+function createChangeCategorySelectionPill(category, text) {
+  var pill = document.createElement('button');
+  pill.className = 'change-category-selection-pill';
+  pill.setAttribute('data-category', category);
+  pill.style.cssText = 
+    'padding:10px 16px; background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; ' +
+    'border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; ' +
+    'transition:all 0.2s ease; white-space:nowrap;';
+  
+  pill.textContent = text;
+  
+  // Add hover effects
+  pill.onmouseover = function() {
+    if (this.style.background === '#f8fafc' || this.style.background === '') {
+      this.style.background = '#e2e8f0';
+      this.style.color = '#374151';
+    }
+  };
+  
+  pill.onmouseout = function() {
+    if (this.style.background === '#e2e8f0' || this.style.background === 'rgb(226, 232, 240)') {
+      this.style.background = '#f8fafc';
+      this.style.color = '#64748b';
+    }
+  };
+  
+  return pill;
+}
+
+// Change saved message category
+function changeSavedMessageCategory(messageId, newCategory, callback) {
+  if (!chrome || !chrome.runtime) {
+    showLeftPanelFeedback('Extension context lost. Please reload the page.', 'error');
+    if (callback) callback(false);
+    return;
+  }
+  
+  chrome.runtime.sendMessage({
+    action: 'changeSavedMessageCategory',
+    messageId: messageId,
+    newCategory: newCategory
+  }, function(response) {
+    if (chrome.runtime.lastError) {
+      showLeftPanelFeedback('Extension error. Please reload the page.', 'error');
+      if (callback) callback(false);
+      return;
+    }
+    
+    if (response && response.success) {
+      loadCategoryPills(); // Refresh category pills
+      filterMessagesByCategory('all'); // Refresh all messages
+      showLeftPanelFeedback('Category changed successfully!', 'success');
+      if (callback) callback(true);
+    } else {
+      var errorMsg = response && response.error ? response.error : 'Failed to change category';
+      showLeftPanelFeedback(errorMsg, 'error');
+      if (callback) callback(false);
+    }
+  });
+}
 
 // Delete saved message
 function deleteSavedMessage(messageId) {

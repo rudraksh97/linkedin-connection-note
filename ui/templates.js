@@ -109,6 +109,18 @@ const UITemplates = {
   // Saved messages tab content template
   savedTabContent: `
     <div id="saved-content" style="display:none;">
+      <div style="margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <div style="width:3px; height:20px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius:2px;"></div>
+          <label style="margin:0; color:#111827; font-size:15px; font-weight:700; letter-spacing:-0.025em;">Filter by Category</label>
+        </div>
+        <div id="category-pills" style="display:flex; flex-wrap:wrap; gap:8px;">
+          <button class="category-pill active" data-category="all" style="padding:8px 16px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:20px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s ease; white-space:nowrap;">
+            📋 All Messages
+          </button>
+        </div>
+      </div>
+      
       <div id="saved-messages-list">
         <div style="text-align:center; padding:40px 20px; color:#64748b; font-size:14px;">
           <div style="width:80px; height:80px; background:linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius:20px; margin:0 auto 20px auto; display:flex; align-items:center; justify-content:center; font-size:32px; border:2px solid #e2e8f0;">📝</div>
@@ -147,6 +159,72 @@ const UITemplates = {
       <div style="width:48px; height:48px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius:12px; margin:0 auto 12px auto; display:flex; align-items:center; justify-content:center; font-size:20px; color:white;">✅</div>
       <p style="margin:0 0 4px 0; font-weight:700; color:#065f46; font-size:15px;">Message inserted successfully!</p>
       <p style="margin:0; color:#047857; font-size:12px;">You can now send your connection request</p>
+    </div>
+  `,
+
+  // Category selection modal template
+  categorySelectionModal: `
+    <div style="background:white; padding:32px; border-radius:16px; max-width:420px; width:90%; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="width:64px; height:64px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius:16px; margin:0 auto 16px auto; display:flex; align-items:center; justify-content:center; font-size:28px;">📁</div>
+        <h3 style="margin:0 0 8px 0; color:#111827; font-size:20px; font-weight:700;">Save to Category</h3>
+        <p style="margin:0; color:#6b7280; font-size:14px; line-height:1.5;">Choose a category for your message</p>
+      </div>
+      
+      <div style="margin-bottom:20px;">
+        <label style="display:block; margin-bottom:12px; color:#374151; font-size:14px; font-weight:600;">Select Category:</label>
+        <div id="category-selection-pills" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+          <button class="category-selection-pill" data-category="General" style="padding:10px 16px; background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; white-space:nowrap;">
+            📝 General
+          </button>
+          <button class="category-selection-pill" data-category="Referral" style="padding:10px 16px; background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; white-space:nowrap;">
+            🤝 Referral
+          </button>
+          <button class="category-selection-pill" data-category="custom" style="padding:10px 16px; background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; white-space:nowrap;">
+            ➕ New Category
+          </button>
+        </div>
+      </div>
+      
+      <div id="custom-category-section" style="display:none; margin-bottom:20px;">
+        <label style="display:block; margin-bottom:8px; color:#374151; font-size:14px; font-weight:600;">New Category Name:</label>
+        <input type="text" id="custom-category-input" placeholder="Enter category name..." style="width:100%; padding:12px 16px; border:2px solid #e5e7eb; border-radius:10px; font-size:14px; box-sizing:border-box; outline:none; transition:all 0.2s ease;" maxlength="30">
+        <p style="margin:4px 0 0 0; color:#6b7280; font-size:12px;">Maximum 30 characters</p>
+      </div>
+      
+      <div style="display:flex; gap:12px;">
+        <button id="save-with-category-btn" style="flex:1; padding:14px 20px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:white; border:none; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1);" disabled>Save Message</button>
+        <button id="cancel-category-btn" style="padding:14px 20px; background:#f8fafc; color:#374151; border:1px solid #e5e7eb; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease;">Cancel</button>
+      </div>
+    </div>
+  `,
+
+  // Change category modal template  
+  changeCategoryModal: `
+    <div style="background:white; padding:32px; border-radius:16px; max-width:420px; width:90%; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="width:64px; height:64px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius:16px; margin:0 auto 16px auto; display:flex; align-items:center; justify-content:center; font-size:28px;">✏️</div>
+        <h3 style="margin:0 0 8px 0; color:#111827; font-size:20px; font-weight:700;">Change Category</h3>
+        <p style="margin:0; color:#6b7280; font-size:14px; line-height:1.5;">Move message to a different category</p>
+      </div>
+      
+      <div style="margin-bottom:20px;">
+        <label style="display:block; margin-bottom:12px; color:#374151; font-size:14px; font-weight:600;">Select New Category:</label>
+        <div id="change-category-selection-pills" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+          <!-- Pills will be populated dynamically -->
+        </div>
+      </div>
+      
+      <div id="change-custom-category-section" style="display:none; margin-bottom:20px;">
+        <label style="display:block; margin-bottom:8px; color:#374151; font-size:14px; font-weight:600;">New Category Name:</label>
+        <input type="text" id="change-custom-category-input" placeholder="Enter category name..." style="width:100%; padding:12px 16px; border:2px solid #e5e7eb; border-radius:10px; font-size:14px; box-sizing:border-box; outline:none; transition:all 0.2s ease;" maxlength="30">
+        <p style="margin:4px 0 0 0; color:#6b7280; font-size:12px;">Maximum 30 characters</p>
+      </div>
+      
+      <div style="display:flex; gap:12px;">
+        <button id="change-category-save-btn" style="flex:1; padding:14px 20px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1);" disabled>Change Category</button>
+        <button id="change-category-cancel-btn" style="padding:14px 20px; background:#f8fafc; color:#374151; border:1px solid #e5e7eb; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease;">Cancel</button>
+      </div>
     </div>
   `
 };

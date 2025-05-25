@@ -120,20 +120,30 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         return true;
       }
       
+      // Validate and sanitize category
+      const category = req.category ? req.category.trim() : 'General';
+      if (category.length > 30) {
+        sendResponse({ error: 'Category name too long. Maximum 30 characters allowed.' });
+        return true;
+      }
+      
       chrome.storage.local.get([SAVED_MESSAGES_KEY])
         .then(result => {
           const savedMessages = result[SAVED_MESSAGES_KEY] || [];
           
-          // Check for duplicate messages
-          const isDuplicate = savedMessages.some(msg => msg.message === cleanMessage);
+          // Check for duplicate messages in the same category
+          const isDuplicate = savedMessages.some(msg => 
+            msg.message === cleanMessage && (msg.category || 'General') === category
+          );
           if (isDuplicate) {
-            sendResponse({ error: 'This message has already been saved.' });
+            sendResponse({ error: 'This message has already been saved in this category.' });
             return;
           }
           
           const newMessage = {
             id: generateSecureId(),
             message: cleanMessage,
+            category: category,
             timestamp: Date.now()
           };
           savedMessages.unshift(newMessage); // Add to beginning
@@ -155,11 +165,18 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
       return true;
     }
 
-    // Get saved messages
+    // Get saved messages (optionally filtered by category)
     if (req.action === 'getSavedMessages') {
       chrome.storage.local.get([SAVED_MESSAGES_KEY])
         .then(result => {
-          sendResponse({ messages: result[SAVED_MESSAGES_KEY] || [] });
+          let messages = result[SAVED_MESSAGES_KEY] || [];
+          
+          // Filter by category if specified
+          if (req.category) {
+            messages = messages.filter(msg => (msg.category || 'General') === req.category);
+          }
+          
+          sendResponse({ messages: messages });
         })
         .catch(error => {
           console.error('Error getting saved messages:', error);
@@ -181,6 +198,79 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         })
         .catch(error => {
           console.error('Error deleting saved message:', error);
+          sendResponse({ error: error.message });
+        });
+      return true;
+    }
+
+    // Get categories
+    if (req.action === 'getCategories') {
+      chrome.storage.local.get([SAVED_MESSAGES_KEY])
+        .then(result => {
+          const savedMessages = result[SAVED_MESSAGES_KEY] || [];
+          const categories = new Set(['General', 'Referral']); // Default categories
+          
+          // Extract unique categories from saved messages
+          savedMessages.forEach(msg => {
+            if (msg.category && msg.category.trim()) {
+              categories.add(msg.category);
+            }
+          });
+          
+          sendResponse({ categories: Array.from(categories).sort() });
+        })
+        .catch(error => {
+          console.error('Error getting categories:', error);
+          sendResponse({ error: error.message });
+        });
+      return true;
+    }
+
+    // Change saved message category
+    if (req.action === 'changeSavedMessageCategory') {
+      if (!req.messageId || !req.newCategory) {
+        sendResponse({ error: 'Invalid parameters provided' });
+        return true;
+      }
+      
+      const newCategory = req.newCategory.trim();
+      if (newCategory.length > 30) {
+        sendResponse({ error: 'Category name too long. Maximum 30 characters allowed.' });
+        return true;
+      }
+      
+      chrome.storage.local.get([SAVED_MESSAGES_KEY])
+        .then(result => {
+          const savedMessages = result[SAVED_MESSAGES_KEY] || [];
+          const messageIndex = savedMessages.findIndex(msg => msg.id === req.messageId);
+          
+          if (messageIndex === -1) {
+            sendResponse({ error: 'Message not found' });
+            return;
+          }
+          
+          // Check for duplicate in new category
+          const isDuplicate = savedMessages.some((msg, index) => 
+            index !== messageIndex && 
+            msg.message === savedMessages[messageIndex].message && 
+            (msg.category || 'General') === newCategory
+          );
+          
+          if (isDuplicate) {
+            sendResponse({ error: 'This message already exists in the target category.' });
+            return;
+          }
+          
+          // Update category
+          savedMessages[messageIndex].category = newCategory;
+          
+          return chrome.storage.local.set({ [SAVED_MESSAGES_KEY]: savedMessages });
+        })
+        .then(() => {
+          sendResponse({ success: true });
+        })
+        .catch(error => {
+          console.error('Error changing message category:', error);
           sendResponse({ error: error.message });
         });
       return true;
