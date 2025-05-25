@@ -2,17 +2,17 @@
 
 A powerful Chrome extension that helps you craft personalized LinkedIn connection messages with AI assistance. Never send generic connection requests again!
 
-![Version](https://img.shields.io/badge/version-0.3.1-blue.svg)
+![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Chrome%20Extension-yellow.svg)
 
 ## ✨ Features
 
 ### 🤖 **AI-Powered Message Generation**
-- Generate personalized connection messages using OpenAI's GPT
-- Context-aware suggestions based on the person's profile information
-- Multiple tone options (professional, casual, friendly, assertive)
-- Automatically extracts name, job title, company, and location
+- Generate professional connection messages using OpenAI's GPT
+- Generic message templates optimized for different professional contexts
+- LinkedIn Terms of Service compliant (no profile data extraction)
+- Multiple message types: standard connections and referral requests
 
 ### 📝 **Message Management**
 - **Create Tab**: Compose custom messages with real-time character counting
@@ -83,8 +83,8 @@ A powerful Chrome extension that helps you craft personalized LinkedIn connectio
 
 ### AI Message Generation
 
-1. Click **"Generate"** button
-2. The AI will analyze the person's profile and create a personalized message
+1. Click **"Generate"** button for standard connection messages or **"Ask Referral"** for referral requests
+2. The AI will create a professional, ToS-compliant message template
 3. Review and edit the generated message if needed
 4. Click **"Use"** to insert it into LinkedIn
 
@@ -110,7 +110,7 @@ A powerful Chrome extension that helps you craft personalized LinkedIn connectio
 
 ### Customization Options
 
-- **Message tones**: Professional, casual, friendly, assertive
+- **Message types**: Standard connections and referral requests
 - **Character limits**: Automatic counting and warnings
 - **Auto-positioning**: Extension intelligently positions itself
 - **Dark mode**: Automatically adapts to your browser theme

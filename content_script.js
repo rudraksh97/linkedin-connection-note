@@ -81,8 +81,7 @@ function init() {
     // Set up observer to watch for modals
     setupObserver();
     
-    // Initialize response tracking
-    initResponseTracking();
+
     
     // Check if modal already exists
     checkForModal();
@@ -618,7 +617,6 @@ function setupUnifiedHandlers() {
   try {
     var createTab = document.getElementById('tab-create');
     var savedTab = document.getElementById('tab-saved');
-    var historyTab = document.getElementById('tab-history');
     
     if (createTab) {
       createTab.onclick = function() {
@@ -644,20 +642,6 @@ function setupUnifiedHandlers() {
           }, 100);
         } catch (error) {
           console.error('Error in saved tab handler:', error);
-        }
-      };
-    }
-    
-    if (historyTab) {
-      historyTab.onclick = function() {
-        try {
-          switchMainTab('history');
-          // Reload message history when switching to history tab
-          setTimeout(function() {
-            loadMessageHistory();
-          }, 100);
-        } catch (error) {
-          console.error('Error in history tab handler:', error);
         }
       };
     }
@@ -771,7 +755,6 @@ function setupUnifiedHandlers() {
       // Check if chrome context is still valid before loading data
       if (chrome && chrome.runtime && chrome.runtime.id) {
         loadSavedMessages();
-        loadMessageHistory();
         debugLog("Initial data loading completed");
       } else {
         console.log('Chrome extension context invalidated, skipping data load');
@@ -782,73 +765,19 @@ function setupUnifiedHandlers() {
     }
   }, 200);
   
-  // Display persona detection
-  setTimeout(function() {
-    try {
-      displayPersonaDetection();
-    } catch (error) {
-      console.error('Error displaying persona detection:', error);
-    }
-  }, 500);
+
 }
 
-// Display persona detection in UI
-function displayPersonaDetection() {
-  var personaContainer = document.getElementById('persona-detection');
-  var personaLabel = document.getElementById('persona-label');
-  var personaIcon = document.getElementById('persona-icon');
-  
-  if (!personaContainer || !personaLabel || !personaIcon) {
-    debugLog("Persona UI elements not found");
-    return;
-  }
-  
-  // Extract person information and detect persona
-  var personInfo = extractPersonInfo();
-  var persona = detectPersonaFromProfile(personInfo);
-  
-  debugLog("Displaying persona:", persona, "for person:", personInfo.name);
-  
-  // Set persona display
-  var personaDisplay = getPersonaDisplayInfo(persona);
-  personaLabel.textContent = personaDisplay.label;
-  personaIcon.textContent = personaDisplay.icon;
-  
-  // Show the persona container
-  personaContainer.style.display = 'block';
-  
-  // Add a subtle animation
-  personaContainer.style.opacity = '0';
-  personaContainer.style.transform = 'translateY(-10px)';
-  setTimeout(function() {
-    personaContainer.style.transition = 'all 0.3s ease';
-    personaContainer.style.opacity = '1';
-    personaContainer.style.transform = 'translateY(0)';
-  }, 100);
-}
 
-// Get persona display information
-function getPersonaDisplayInfo(persona) {
-  switch (persona) {
-    case 'recruiter':
-      return { label: 'Recruiter / Talent Acquisition', icon: '🎯' };
-    case 'engineering_manager':
-      return { label: 'Engineering Manager / Tech Lead', icon: '⚙️' };
-    case 'founder':
-      return { label: 'Founder / CEO / Entrepreneur', icon: '🚀' };
-    default:
-      return { label: 'Professional', icon: '👤' };
-  }
-}
+
+
 
 // Switch between main tabs
 function switchMainTab(tab) {
   var createTab = document.getElementById('tab-create');
   var savedTab = document.getElementById('tab-saved');
-  var historyTab = document.getElementById('tab-history');
   var createContent = document.getElementById('create-content');
   var savedContent = document.getElementById('saved-content');
-  var historyContent = document.getElementById('history-content');
   
   // Reset all tabs
   if (createTab) {
@@ -859,15 +788,10 @@ function switchMainTab(tab) {
     savedTab.style.background = 'transparent';
     savedTab.style.color = '#6b7280';
   }
-  if (historyTab) {
-    historyTab.style.background = 'transparent';
-    historyTab.style.color = '#6b7280';
-  }
   
   // Hide all content
   if (createContent) createContent.style.display = 'none';
   if (savedContent) savedContent.style.display = 'none';
-  if (historyContent) historyContent.style.display = 'none';
   
   // Show selected tab and content
   if (tab === 'create') {
@@ -882,12 +806,6 @@ function switchMainTab(tab) {
       savedTab.style.color = 'white';
     }
     if (savedContent) savedContent.style.display = 'block';
-  } else if (tab === 'history') {
-    if (historyTab) {
-      historyTab.style.background = '#0077b5';
-      historyTab.style.color = 'white';
-    }
-    if (historyContent) historyContent.style.display = 'block';
   }
 }
 
@@ -1056,7 +974,6 @@ function setupLeftPanelHandlers() {
   try {
     // Tab switching
     var savedTab = document.getElementById('tab-saved');
-    var historyTab = document.getElementById('tab-history');
     
     if (savedTab) {
       savedTab.onclick = function() {
@@ -1064,16 +981,6 @@ function setupLeftPanelHandlers() {
           switchTab('saved');
         } catch (error) {
           console.error('Error in saved tab handler:', error);
-        }
-      };
-    }
-    
-    if (historyTab) {
-      historyTab.onclick = function() {
-        try {
-          switchTab('history');
-        } catch (error) {
-          console.error('Error in history tab handler:', error);
         }
       };
     }
@@ -1085,34 +992,21 @@ function setupLeftPanelHandlers() {
   setTimeout(function() {
     try {
       loadSavedMessages();
-      loadMessageHistory();
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
   }, 100);
 }
 
-// Switch between tabs
+// Switch between tabs (legacy function - only supports saved)
 function switchTab(tab) {
   var savedTab = document.getElementById('tab-saved');
-  var historyTab = document.getElementById('tab-history');
   var savedContainer = document.getElementById('saved-messages');
-  var historyContainer = document.getElementById('history-messages');
   
   if (tab === 'saved') {
     savedTab.style.background = '#0077b5';
     savedTab.style.color = 'white';
-    historyTab.style.background = '#f3f4f6';
-    historyTab.style.color = '#666';
     savedContainer.style.display = 'block';
-    historyContainer.style.display = 'none';
-  } else {
-    historyTab.style.background = '#0077b5';
-    historyTab.style.color = 'white';
-    savedTab.style.background = '#f3f4f6';
-    savedTab.style.color = '#666';
-    savedContainer.style.display = 'none';
-    historyContainer.style.display = 'block';
   }
 }
 
@@ -1211,45 +1105,7 @@ function loadSavedMessages() {
   }
 }
 
-// Load message history
-function loadMessageHistory() {
-  if (!chrome || !chrome.runtime) {
-    var container = document.getElementById('history-messages-list');
-    if (container) {
-      container.innerHTML = 
-        '<div style="text-align:center; padding:20px; color:#ef4444; font-size:14px;">' +
-          '<div style="margin-bottom:8px; font-size:24px;">⚠️</div>' +
-          '<p style="margin:0;">Extension context lost</p>' +
-          '<p style="margin:4px 0 0 0; font-size:12px;">Please reload the page</p>' +
-        '</div>';
-    }
-    return;
-  }
-  
-  chrome.runtime.sendMessage({ action: 'getMessageHistory' }, function(response) {
-    if (chrome.runtime.lastError) {
-      console.error('Chrome runtime error:', chrome.runtime.lastError);
-      return;
-    }
-    
-    var container = document.getElementById('history-messages-list');
-    if (!container) return;
-    
-    if (response && response.history && response.history.length > 0) {
-      container.innerHTML = '';
-      for (var i = 0; i < response.history.length; i++) {
-        createHistoryMessageElement(response.history[i], container);
-      }
-    } else {
-      container.innerHTML = 
-        '<div style="text-align:center; padding:30px; color:#9ca3af; font-size:14px;">' +
-          '<div style="margin-bottom:8px; font-size:24px;">📊</div>' +
-          '<p style="margin:0;">No message history yet</p>' +
-          '<p style="margin:4px 0 0 0; font-size:12px;">Sent messages will appear here</p>' +
-        '</div>';
-    }
-  });
-}
+
 
 // Create saved message element
 function createSavedMessageElement(messageData, container) {
@@ -1333,87 +1189,7 @@ function createSavedMessageElement(messageData, container) {
   container.appendChild(wrapper);
 }
 
-// Create history message element
-function createHistoryMessageElement(historyData, container) {
-  var wrapper = document.createElement('div');
-  wrapper.style.marginBottom = '12px';
-  wrapper.style.padding = '12px';
-  wrapper.style.backgroundColor = '#fef7ff';
-  wrapper.style.border = '1px solid #e9d5ff';
-  wrapper.style.borderRadius = '8px';
-  wrapper.style.cursor = 'pointer';
-  
-  wrapper.onmouseover = function() {
-    this.style.backgroundColor = '#faf5ff';
-    this.style.borderColor = '#d8b4fe';
-  };
-  wrapper.onmouseout = function() {
-    this.style.backgroundColor = '#fef7ff';
-    this.style.borderColor = '#e9d5ff';
-  };
-  
-  var textElement = document.createElement('p');
-  textElement.style.margin = '0 0 8px 0';
-  textElement.style.fontSize = '13px';
-  textElement.style.lineHeight = '1.4';
-  textElement.style.color = '#374151';
-  textElement.textContent = historyData.message;
-  
-  var actionRow = document.createElement('div');
-  actionRow.style.display = 'flex';
-  actionRow.style.justifyContent = 'space-between';
-  actionRow.style.alignItems = 'center';
-  
-  var infoElement = document.createElement('span');
-  infoElement.style.fontSize = '11px';
-  infoElement.style.color = '#9ca3af';
-  infoElement.textContent = '📤 ' + new Date(historyData.timestamp).toLocaleDateString();
-  
-  var buttonContainer = document.createElement('div');
-  buttonContainer.style.display = 'flex';
-  buttonContainer.style.gap = '6px';
-  
-  var useBtn = document.createElement('button');
-  useBtn.style.padding = '4px 8px';
-  useBtn.style.backgroundColor = '#8b5cf6';
-  useBtn.style.color = 'white';
-  useBtn.style.border = 'none';
-  useBtn.style.borderRadius = '4px';
-  useBtn.style.cursor = 'pointer';
-  useBtn.style.fontSize = '11px';
-  useBtn.style.fontWeight = '600';
-  useBtn.textContent = '↻ Reuse';
-  
-  useBtn.onclick = function(e) {
-    e.stopPropagation();
-    useNote(historyData.message);
-  };
-  
-  var deleteBtn = document.createElement('button');
-  deleteBtn.style.padding = '4px 8px';
-  deleteBtn.style.backgroundColor = '#ef4444';
-  deleteBtn.style.color = 'white';
-  deleteBtn.style.border = 'none';
-  deleteBtn.style.borderRadius = '4px';
-  deleteBtn.style.cursor = 'pointer';
-  deleteBtn.style.fontSize = '11px';
-  deleteBtn.textContent = '×';
-  
-  deleteBtn.onclick = function(e) {
-    e.stopPropagation();
-    deleteHistoryMessage(historyData.id);
-  };
-  
-  buttonContainer.appendChild(useBtn);
-  buttonContainer.appendChild(deleteBtn);
-  
-  actionRow.appendChild(infoElement);
-  actionRow.appendChild(buttonContainer);
-  
-  wrapper.appendChild(textElement);
-  wrapper.appendChild(actionRow);
-  container.appendChild(wrapper);
-}
+
 
 // Delete saved message
 function deleteSavedMessage(messageId) {
@@ -1440,66 +1216,9 @@ function deleteSavedMessage(messageId) {
   });
 }
 
-// Delete history message
-function deleteHistoryMessage(messageId) {
-  if (!chrome || !chrome.runtime) {
-    showLeftPanelFeedback('Extension context lost. Please reload the page.', 'error');
-    return;
-  }
-  
-  chrome.runtime.sendMessage({
-    action: 'deleteHistoryMessage',
-    messageId: messageId
-  }, function(response) {
-    if (chrome.runtime.lastError) {
-      showLeftPanelFeedback('Extension error. Please reload the page.', 'error');
-      return;
-    }
-    
-    if (response && response.success) {
-      loadMessageHistory(); // Refresh the history
-      showLeftPanelFeedback('History item deleted', 'success');
-    } else {
-      showLeftPanelFeedback('Failed to delete history item', 'error');
-    }
-  });
-}
 
-// Add message to history
-function addToHistory(message, source) {
-  debugLog("=== addToHistory called ===");
-  debugLog("Message:", message);
-  debugLog("Source:", source);
-  
-  if (!chrome || !chrome.runtime) {
-    debugLog('Chrome runtime not available, skipping history update');
-    console.log('Chrome runtime not available, skipping history update');
-    return;
-  }
-  
-  debugLog('Chrome runtime is available, sending message to background...');
-  
-  chrome.runtime.sendMessage({
-    action: 'addToHistory',
-    message: message,
-    source: source
-  }, function(response) {
-    if (chrome.runtime.lastError) {
-      debugLog('Chrome runtime error adding to history:', chrome.runtime.lastError);
-      console.error('Chrome runtime error adding to history:', chrome.runtime.lastError);
-      return;
-    }
-    
-    debugLog('addToHistory response received:', response);
-    
-    if (response && response.success) {
-      debugLog('History added successfully, refreshing history list...');
-      loadMessageHistory(); // Refresh history
-    } else {
-      debugLog('History add failed or no success response:', response);
-    }
-  });
-}
+
+
 
 // Show feedback in left panel
 function showLeftPanelFeedback(message, type) {
@@ -1559,15 +1278,24 @@ function generateAIMessage(messageType = 'connection') {
     activeBtn.textContent = messageType === 'referral' ? 'Generating...' : 'Generating...';
   }
   
-  // Extract person information for personalized message
-  var personInfo = extractPersonInfo();
+  // Check if there's existing text in the textarea
+  var existingText = textarea.value.trim();
   
-  // Detect persona from profile
-  var persona = detectPersonaFromProfile(personInfo);
-  debugLog("Detected persona:", persona, "for person:", personInfo.name);
+  // Data extraction disabled for LinkedIn ToS compliance
+  debugLog("Using generic prompt - data extraction disabled for ToS compliance");
   
-  // Create persona-specific prompt
-  var prompt = createPersonaPrompt(persona, personInfo, messageType);
+  // Use generic persona for all users
+  var persona = 'general';
+  
+  // Create prompt based on whether there's existing text
+  var prompt;
+  if (existingText && existingText.length > 0) {
+    prompt = createImprovementPrompt(existingText, messageType);
+    debugLog("Using improvement prompt for existing text:", existingText.substring(0, 50) + "...");
+  } else {
+    prompt = createPersonaPrompt(persona, messageType);
+    debugLog("Using generic prompt for new message generation");
+  }
   
   debugLog("Generated prompt:", prompt);
   
@@ -1624,13 +1352,10 @@ function generateAIMessage(messageType = 'connection') {
             textarea.value = firstSuggestion;
             textarea.focus();
             
-            // Show persona-specific success message
-            var personaLabel = getPersonaLabel(persona);
+            // Show success message based on whether we improved existing text or generated new
+            var actionLabel = existingText && existingText.length > 0 ? 'improved' : 'generated';
             var messageTypeLabel = messageType === 'referral' ? 'referral request' : 'connection message';
-            showGenerateSuccess(`✅ ${personaLabel} ${messageTypeLabel} generated!`);
-            
-            // Track the generated message with persona info
-            addToHistory(firstSuggestion, `ai_${persona}_${messageType}`);
+            showGenerateSuccess(`✅ LinkedIn ${messageTypeLabel} ${actionLabel}!`);
           }
         } else {
           showApiKeyPrompt();
@@ -1647,59 +1372,9 @@ function generateAIMessage(messageType = 'connection') {
   }
 }
 
-// Create personalized prompt based on tone and person info
-function createPersonalizedPrompt(tone, personInfo) {
-  var toneDesc = 'warm and approachable';
-  if (tone === 'professional') toneDesc = 'formal and business-focused';
-  else if (tone === 'polite') toneDesc = 'respectful and courteous';
-  else if (tone === 'assertive') toneDesc = 'confident and direct';
-  else if (tone === 'casual') toneDesc = 'relaxed and informal';
-  
-  var basePrompt = 'Write 3 unique LinkedIn connection request messages that are ' + toneDesc + '. Each message should be under 250 characters and personalized. Separate with "###".';
-  
-  // Add person context if available
-  var contextParts = [];
-  
-  if (personInfo.name) {
-    contextParts.push('Person name: ' + personInfo.name);
-  }
-  
-  if (personInfo.title) {
-    contextParts.push('Job title: ' + personInfo.title);
-  }
-  
-  if (personInfo.company) {
-    contextParts.push('Company: ' + personInfo.company);
-  }
-  
-  if (personInfo.location) {
-    contextParts.push('Location: ' + personInfo.location);
-  }
-  
-  if (personInfo.mutualConnections) {
-    contextParts.push('Mutual connections: ' + personInfo.mutualConnections);
-  }
-  
-  if (personInfo.about && personInfo.about.length > 0) {
-    contextParts.push('About: ' + personInfo.about);
-  }
-  
-  if (contextParts.length > 0) {
-    var contextString = '\n\nContext about the person:\n' + contextParts.join('\n');
-    var personalizedPrompt = basePrompt + contextString + '\n\nUse this information to create personalized, relevant connection messages that reference specific details when appropriate. Make them feel genuine and tailored to this person.';
-    
-    console.log("Generated personalized prompt:", personalizedPrompt);
-    return personalizedPrompt;
-  } else {
-    console.log("No person context found, using generic prompt");
-    return basePrompt;
-  }
-}
 
-// Legacy function for backward compatibility
-// function createPrompt(tone) {
-//   return createPersonalizedPrompt(tone, {});
-// }
+
+
 
 // Show error message for generation
 function showGenerateError(message) {
@@ -1711,19 +1386,7 @@ function showGenerateSuccess(message = '✅ AI message generated!') {
   showLeftPanelFeedback(message, 'success');
 }
 
-// Get user-friendly persona label
-function getPersonaLabel(persona) {
-  switch (persona) {
-    case 'recruiter':
-      return 'Recruiter-focused';
-    case 'engineering_manager':
-      return 'Engineering Manager';
-    case 'founder':
-      return 'Founder-focused';
-    default:
-      return 'Generic';
-  }
-}
+
 
 // Show API key prompt
 function showApiKeyPrompt() {
@@ -1903,260 +1566,15 @@ function useNote(text) {
   }
 }
 
-// Extract person information from LinkedIn page
-function extractPersonInfo() {
-  var personInfo = {
-    name: '',
-    title: '',
-    company: '',
-    location: '',
-    industry: '',
-    mutualConnections: '',
-    about: ''
-  };
-  
-  try {
-    // First try to get info from the connection modal itself
-    var modal = document.querySelector('artdeco-modal') || 
-               document.querySelector('[role="dialog"]');
-    
-    if (modal) {
-      // Try to find name in modal header or content
-      var nameElement = modal.querySelector('h2') || 
-                       modal.querySelector('[data-test-modal-title]') ||
-                       modal.querySelector('.invite-connect-node__name') ||
-                       modal.querySelector('strong');
-      
-      if (nameElement) {
-        var nameText = nameElement.textContent || nameElement.innerText;
-        if (nameText && !nameText.toLowerCase().includes('invite') && !nameText.toLowerCase().includes('connect')) {
-          personInfo.name = nameText.trim();
-        }
-      }
-    }
-    
-    // If name not found in modal, try to get it from page URL or main content
-    if (!personInfo.name) {
-      // Try multiple profile page selectors (LinkedIn changes these frequently)
-      var nameSelectors = [
-        'h1.text-heading-xlarge',
-        '.pv-text-details__name',
-        '.ph5 h1',
-        'h1[data-anonymize="person-name"]',
-        '.pv-top-card--list h1',
-        // More recent LinkedIn selectors
-        '.pv-text-details__name .text-heading-xlarge',
-        '.pv-top-card .pv-text-details__name',
-        '.pv-top-card h1',
-        '.text-heading-xlarge.inline',
-        '.pv-text-details__name h1',
-        // Generic fallbacks
-        'main h1',
-        'section h1',
-        '[data-field="name"]',
-        '.profile-photo-edit__name',
-        '.pv-top-card--photo h1'
-      ];
-      
-      var profileName = null;
-      for (var i = 0; i < nameSelectors.length; i++) {
-        profileName = document.querySelector(nameSelectors[i]);
-        if (profileName) {
-          var nameText = (profileName.textContent || profileName.innerText).trim();
-          // Filter out non-name content
-          if (nameText && 
-              !nameText.toLowerCase().includes('linkedin') &&
-              !nameText.toLowerCase().includes('profile') &&
-              !nameText.toLowerCase().includes('connect') &&
-              nameText.length > 2 &&
-              nameText.length < 100) {
-            personInfo.name = nameText;
-            console.log("Found name using selector:", nameSelectors[i], "->", nameText);
-            break;
-          }
-        }
-      }
-    }
-    
-    // Try to extract name from page title if still not found
-    if (!personInfo.name) {
-      var pageTitle = document.title;
-      if (pageTitle) {
-        // LinkedIn titles are usually like "John Smith | LinkedIn" or "John Smith - Software Engineer | LinkedIn"
-        var titleMatch = pageTitle.match(/^([^|•\-\(]+)/);
-        if (titleMatch) {
-          var nameFromTitle = titleMatch[1].trim();
-          if (nameFromTitle && 
-              !nameFromTitle.toLowerCase().includes('linkedin') &&
-              !nameFromTitle.toLowerCase().includes('profile') &&
-              nameFromTitle.length > 2 &&
-              nameFromTitle.length < 100) {
-            personInfo.name = nameFromTitle;
-            console.log("Found name from page title:", nameFromTitle);
-          }
-        }
-      }
-    }
-    
-    // Extract job title and company
-    var titleElement = document.querySelector('.pv-text-details__sub-text') ||
-                      document.querySelector('.text-body-medium.break-words') ||
-                      document.querySelector('.pv-top-card--list .text-body-medium') ||
-                      document.querySelector('[data-anonymize="job-title"]');
-    
-    if (titleElement) {
-      var titleText = (titleElement.textContent || titleElement.innerText).trim();
-      personInfo.title = titleText;
-      
-      // Try to extract company from title (usually after "at" or "•")
-      var atMatch = titleText.match(/\bat\s+([^•\n]+)/i);
-      var bulletMatch = titleText.match(/•\s*([^•\n]+)/);
-      
-      if (atMatch) {
-        personInfo.company = atMatch[1].trim();
-      } else if (bulletMatch) {
-        personInfo.company = bulletMatch[1].trim();
-      }
-    }
-    
-    // Try alternative company selector
-    if (!personInfo.company) {
-      var companyElement = document.querySelector('.pv-text-details__company-name') ||
-                          document.querySelector('[data-anonymize="company-name"]') ||
-                          document.querySelector('.pv-entity__secondary-title');
-      
-      if (companyElement) {
-        personInfo.company = (companyElement.textContent || companyElement.innerText).trim();
-      }
-    }
-    
-    // Extract location
-    var locationElement = document.querySelector('.pv-text-details__location') ||
-                         document.querySelector('[data-anonymize="location"]') ||
-                         document.querySelector('.pv-top-card--list-bullet.pv-top-card--list-bullet--has-bullet');
-    
-    if (locationElement) {
-      personInfo.location = (locationElement.textContent || locationElement.innerText).trim();
-    }
-    
-    // Extract mutual connections info
-    var mutualElement = document.querySelector('[data-control-name="topcard_view_mutual_connections"]') ||
-                       document.querySelector('.pv-top-card-v2-ctas .link') ||
-                       document.querySelector('.pv-top-card--list .link');
-    
-    if (mutualElement) {
-      var mutualText = (mutualElement.textContent || mutualElement.innerText).trim();
-      if (mutualText.toLowerCase().includes('mutual') || mutualText.includes('connection')) {
-        personInfo.mutualConnections = mutualText;
-      }
-    }
-    
-    // Extract about/summary (first few lines)
-    var aboutElement = document.querySelector('.pv-about__summary-text') ||
-                      document.querySelector('[data-field="summary"]') ||
-                      document.querySelector('.pv-about-section .pv-about__summary-text .lt-line-clamp__raw-line');
-    
-    if (aboutElement) {
-      var aboutText = (aboutElement.textContent || aboutElement.innerText).trim();
-      // Limit to first 200 characters to keep prompt reasonable
-      if (aboutText.length > 200) {
-        aboutText = aboutText.substring(0, 200) + '...';
-      }
-      personInfo.about = aboutText;
-    }
-    
-    // Try to extract name from URL if still not found
-    if (!personInfo.name) {
-      var urlMatch = window.location.href.match(/\/in\/([^\/\?]+)/);
-      if (urlMatch) {
-        var urlSlug = urlMatch[1];
-        // Skip if it's just numbers or too generic
-        if (urlSlug && 
-            !urlSlug.match(/^\d+$/) && 
-            urlSlug.length > 3 && 
-            urlSlug !== 'unknown' &&
-            !urlSlug.includes('anonymous')) {
-          // Convert URL slug to readable name (rough approximation)
-          var nameFromUrl = urlSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          personInfo.name = nameFromUrl;
-          console.log("Found name from URL:", nameFromUrl);
-        }
-      }
-    }
-    
-    // Try alternative approaches for name extraction
-    if (!personInfo.name) {
-      // Look for meta tags
-      var metaTitle = document.querySelector('meta[property="og:title"]');
-      if (metaTitle) {
-        var metaContent = metaTitle.getAttribute('content');
-        if (metaContent) {
-          var metaMatch = metaContent.match(/^([^|•\-\(]+)/);
-          if (metaMatch) {
-            var nameFromMeta = metaMatch[1].trim();
-            if (nameFromMeta && 
-                !nameFromMeta.toLowerCase().includes('linkedin') &&
-                nameFromMeta.length > 2 &&
-                nameFromMeta.length < 100) {
-              personInfo.name = nameFromMeta;
-              console.log("Found name from meta tag:", nameFromMeta);
-            }
-          }
-        }
-      }
-    }
-    
-    // Last resort: look for any h1 that looks like a name
-    if (!personInfo.name) {
-      var allH1s = document.querySelectorAll('h1');
-      for (var i = 0; i < allH1s.length; i++) {
-        var h1Text = (allH1s[i].textContent || allH1s[i].innerText).trim();
-        // Check if it looks like a name (contains spaces, reasonable length, no common UI words)
-        if (h1Text && 
-            h1Text.includes(' ') &&
-            h1Text.length > 5 &&
-            h1Text.length < 60 &&
-            !h1Text.toLowerCase().includes('linkedin') &&
-            !h1Text.toLowerCase().includes('profile') &&
-            !h1Text.toLowerCase().includes('connect') &&
-            !h1Text.toLowerCase().includes('message') &&
-            !h1Text.toLowerCase().includes('follow') &&
-            /^[a-zA-Z\s\.\-\']+$/.test(h1Text)) {
-          personInfo.name = h1Text;
-          console.log("Found name from generic h1:", h1Text);
-          break;
-        }
-      }
-    }
-    
-    console.log("Extracted person info:", personInfo);
-    return personInfo;
-    
-  } catch (error) {
-    console.error("Error extracting person info:", error);
-    return personInfo; // Return empty object on error
-  }
-}
 
-// Simple function to save sent message to history
-function saveSentMessageToHistory(sentMessage) {
-  debugLog("=== saveSentMessageToHistory called ===");
-  debugLog("Sent message:", sentMessage);
-  
-  if (sentMessage && sentMessage.trim()) {
-    var trimmedMessage = sentMessage.trim();
-    debugLog("Saving sent message to history:", trimmedMessage);
-    console.log("Saving sent message to history:", trimmedMessage);
-    addToHistory(trimmedMessage, 'sent');
-  } else {
-    debugLog("No valid message to save to history");
-    console.log("No valid message to save to history");
-  }
-}
 
-// Enhanced send button detection with better message capturing
+
+
+
+
+// Simplified send button detection to just hide UI when modal is closed
 function setupSendButtonDetection() {
-  debugLog("Setting up enhanced Send button detection...");
+  debugLog("Setting up Send button detection to hide UI...");
   
   // Find the LinkedIn modal with connection note
   var linkedinModal = null;
@@ -2176,226 +1594,38 @@ function setupSendButtonDetection() {
   
   debugLog("Modal found for send button detection:", linkedinModal);
   
-  // Look for Send button with multiple approaches
-  var sendButton = null;
-  
-  // Try multiple selectors for the send button
-  var sendButtonSelectors = [
-    'button[aria-label*="Send"]',
-    'button[aria-label*="send"]', 
-    'button[data-control-name*="send"]',
-    'button[data-control-name*="invite"]',
-    'button[data-control-name*="connect"]',
-    'button[type="submit"]',
-    '.send-invite__actions button',
-    '.artdeco-button--primary',
-    'button.artdeco-button--primary'
-  ];
-  
-  for (var i = 0; i < sendButtonSelectors.length; i++) {
-    sendButton = linkedinModal.querySelector(sendButtonSelectors[i]);
-    if (sendButton) {
-      debugLog("Found send button using selector:", sendButtonSelectors[i]);
-      break;
+  // Method 1: Mutation observer to detect modal changes
+  var modalObserver = new MutationObserver(function(mutations) {
+    var modalStillExists = document.body.contains(linkedinModal);
+    if (!modalStillExists) {
+      debugLog("Modal removed - hiding UI");
+      hideUI();
+      modalObserver.disconnect();
     }
-  }
+  });
   
-  // If not found by selectors, look by text content
-  if (!sendButton) {
-    var buttons = linkedinModal.querySelectorAll('button');
-    for (var i = 0; i < buttons.length; i++) {
-      var buttonText = (buttons[i].textContent || buttons[i].innerText || '').trim().toLowerCase();
-      if (buttonText === 'send' || 
-          buttonText === 'send invitation' ||
-          buttonText === 'send invite' ||
-          buttonText === 'connect' ||
-          buttonText.includes('send now')) {
-        sendButton = buttons[i];
-        debugLog("Found Send button by text content:", buttonText);
-        break;
-      }
-    }
-  }
+  modalObserver.observe(document.body, { 
+    childList: true, 
+    subtree: true 
+  });
   
-  // Enhanced message capture function
-  function captureAndSaveMessage() {
-    debugLog("Attempting to capture message for history...");
+  // Method 2: Periodic check if modal is still visible
+  var modalCheckInterval = setInterval(function() {
+    var modalStillVisible = linkedinModal && 
+                           document.body.contains(linkedinModal) && 
+                           linkedinModal.offsetParent !== null;
     
-    // Try multiple selectors for the message textarea
-    var messageSelectors = [
-      'textarea[name="message"]',
-      'textarea[aria-label*="message"]',
-      'textarea[placeholder*="message"]',
-      'textarea',
-      '[contenteditable="true"]',
-      '.send-invite__custom-message textarea',
-      '#custom-message',
-      '[data-control-name="compose_message"] textarea'
-    ];
-    
-    var textarea = null;
-    var messageContent = '';
-    
-    for (var i = 0; i < messageSelectors.length; i++) {
-      textarea = linkedinModal.querySelector(messageSelectors[i]);
-      if (textarea) {
-        debugLog("Found message input using selector:", messageSelectors[i]);
-        
-        if (textarea.tagName === 'TEXTAREA') {
-          messageContent = textarea.value;
-        } else {
-          messageContent = textarea.textContent || textarea.innerText;
-        }
-        
-        messageContent = messageContent.trim();
-        if (messageContent && messageContent.length > 0) {
-          debugLog("Captured message content:", messageContent);
-          break;
-        }
-      }
-    }
-    
-    if (messageContent && messageContent.length > 0) {
-      debugLog("Saving message to history:", messageContent);
-      saveSentMessageToHistory(messageContent);
-      return true;
-    } else {
-      debugLog("No message content found to save to history");
-      return false;
-    }
-  }
-  
-  if (sendButton) {
-    debugLog("Send button found and setting up click listener:", sendButton);
-    
-    // Add click listener to Send button with enhanced detection
-    var originalOnClick = sendButton.onclick;
-    
-    // Method 1: Direct click event listener
-    sendButton.addEventListener('click', function(event) {
-      debugLog("Send button clicked - Method 1 (addEventListener)");
-      
-      setTimeout(function() {
-        captureAndSaveMessage();
-        setTimeout(function() {
-          hideUI();
-        }, 1000);
-      }, 100);
-    }, true); // Use capture phase
-    
-    // Method 2: Override onclick
-    sendButton.onclick = function(event) {
-      debugLog("Send button clicked - Method 2 (onclick override)");
-      
-      setTimeout(function() {
-        captureAndSaveMessage();
-        setTimeout(function() {
-          hideUI();
-        }, 1000);
-      }, 100);
-      
-      // Call original onclick if it existed
-      if (originalOnClick) {
-        return originalOnClick.call(this, event);
-      }
-    };
-    
-    // Method 3: Monitor form submission
-    var form = sendButton.closest('form');
-    if (form) {
-      debugLog("Found form containing send button, adding submit listener");
-      form.addEventListener('submit', function(event) {
-        debugLog("Form submitted - Method 3 (form submit)");
-        
-        setTimeout(function() {
-          captureAndSaveMessage();
-          setTimeout(function() {
-            hideUI();
-          }, 1000);
-        }, 100);
-      }, true);
-    }
-    
-    // Method 4: Mutation observer to detect modal changes
-    var modalObserver = new MutationObserver(function(mutations) {
-      var modalStillExists = document.body.contains(linkedinModal);
-      if (!modalStillExists) {
-        debugLog("Modal removed - Method 4 (mutation observer)");
-        captureAndSaveMessage();
-        hideUI();
-        modalObserver.disconnect();
-      }
-    });
-    
-    modalObserver.observe(document.body, { 
-      childList: true, 
-      subtree: true 
-    });
-    
-    // Method 5: Periodic check if modal is still visible
-    var modalCheckInterval = setInterval(function() {
-      var modalStillVisible = linkedinModal && 
-                             document.body.contains(linkedinModal) && 
-                             linkedinModal.offsetParent !== null;
-      
-      if (!modalStillVisible) {
-        debugLog("Modal no longer visible - Method 5 (periodic check)");
-        captureAndSaveMessage();
-        hideUI();
-        clearInterval(modalCheckInterval);
-      }
-    }, 2000);
-    
-    // Clean up interval after 2 minutes
-    setTimeout(function() {
+    if (!modalStillVisible) {
+      debugLog("Modal no longer visible - hiding UI");
+      hideUI();
       clearInterval(modalCheckInterval);
-    }, 120000);
-    
-  } else {
-    debugLog("Send button not found - setting up fallback detection");
-    
-    // Fallback Method: Monitor for any button clicks in the modal
-    linkedinModal.addEventListener('click', function(event) {
-      var target = event.target;
-      if (target && target.tagName === 'BUTTON') {
-        var buttonText = (target.textContent || target.innerText || '').trim().toLowerCase();
-        if (buttonText === 'send' || 
-            buttonText === 'send invitation' ||
-            buttonText === 'send invite' ||
-            buttonText === 'connect' ||
-            buttonText.includes('send now')) {
-          
-          debugLog("Detected send action via fallback click detection:", buttonText);
-          
-          setTimeout(function() {
-            captureAndSaveMessage();
-            setTimeout(function() {
-              hideUI();
-            }, 1000);
-          }, 100);
-        }
-      }
-    }, true);
-    
-    // Fallback: Detect modal removal
-    setTimeout(function() {
-      var checkModal = setInterval(function() {
-        var currentModal = document.querySelector('artdeco-modal') || 
-                          document.querySelector('[role="dialog"]');
-        if (!currentModal || !document.body.contains(linkedinModal)) {
-          debugLog("Modal disappeared - fallback detection");
-          captureAndSaveMessage();
-          hideUI();
-          clearInterval(checkModal);
-        }
-      }, 2000);
-      
-      // Stop checking after 2 minutes
-      setTimeout(function() {
-        clearInterval(checkModal);
-      }, 120000);
-    }, 1000);
-  }
+    }
+  }, 2000);
+  
+  // Clean up interval after 2 minutes
+  setTimeout(function() {
+    clearInterval(modalCheckInterval);
+  }, 120000);
   
   debugLog("Send button detection setup completed");
 }
@@ -2437,60 +1667,7 @@ setTimeout(function() {
   injectUI();
 }, 5000); 
 
-// Manual test function for history
-function testHistoryCapture() {
-  debugLog("=== MANUAL HISTORY TEST ===");
-  
-  // Find modal
-  var modal = document.querySelector('artdeco-modal') || 
-             document.querySelector('[role="dialog"]');
-  
-  if (!modal) {
-    debugLog("No modal found for history test");
-    return;
-  }
-  
-  debugLog("Modal found:", modal);
-  
-  // Find textarea
-  var messageSelectors = [
-    'textarea[name="message"]',
-    'textarea[aria-label*="message"]',
-    'textarea[placeholder*="message"]',
-    'textarea',
-    '[contenteditable="true"]'
-  ];
-  
-  var textarea = null;
-  var messageContent = '';
-  
-  for (var i = 0; i < messageSelectors.length; i++) {
-    textarea = modal.querySelector(messageSelectors[i]);
-    if (textarea) {
-      debugLog("Found textarea using selector:", messageSelectors[i]);
-      
-      if (textarea.tagName === 'TEXTAREA') {
-        messageContent = textarea.value;
-      } else {
-        messageContent = textarea.textContent || textarea.innerText;
-      }
-      
-      messageContent = messageContent.trim();
-      if (messageContent && messageContent.length > 0) {
-        debugLog("Found message content:", messageContent);
-        break;
-      }
-    }
-  }
-  
-  if (messageContent) {
-    debugLog("Testing history save with message:", messageContent);
-    saveSentMessageToHistory(messageContent);
-    debugLog("History save attempted");
-  } else {
-    debugLog("No message content found in any textarea");
-  }
-}
+
 
 // Test function for textarea focus issue
 function testTextareaFocus() {
@@ -2546,231 +1723,59 @@ function debugCurrentModals() {
 }
 
 // Make test functions available globally
-window.testHistoryCapture = testHistoryCapture;
 window.testTextareaFocus = testTextareaFocus;
 window.debugCurrentModals = debugCurrentModals;
 
-// Add response tracking functionality
-function initResponseTracking() {
-  // Set up conversation monitoring
-  setupConversationMonitoring();
-  
-  // Check for responses to previously sent messages
-  checkForResponses();
-}
 
-function setupConversationMonitoring() {
-  // Monitor for new messages in conversations
-  const conversationObserver = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.addedNodes.length > 0) {
-        mutation.addedNodes.forEach(function(node) {
-          if (node.nodeType === 1 && node.querySelector) {
-            // Check if this is a new message thread or conversation
-            const messageElements = node.querySelectorAll('[data-test-id*="message"]') || 
-                                   node.querySelectorAll('.msg-s-message-list-item') ||
-                                   node.querySelectorAll('.message-item');
-            
-            if (messageElements.length > 0) {
-              debugLog("New conversation activity detected, checking for responses...");
-              setTimeout(checkForResponses, 2000);
-            }
-          }
-        });
-      }
-    });
-  });
 
-  // Start observing messaging areas
-  const messagingContainer = document.querySelector('[data-test-id="messaging-container"]') ||
-                            document.querySelector('.messaging-container') ||
-                            document.querySelector('.msg-overlay-bubble-header') ||
-                            document.body;
-  
-  if (messagingContainer) {
-    conversationObserver.observe(messagingContainer, { 
-      childList: true, 
-      subtree: true 
-    });
-    debugLog("Response tracking initialized - monitoring conversations");
-  }
-}
 
-function checkForResponses() {
-  // Get message history from storage
-  chrome.storage.local.get(['messageHistory'], function(result) {
-    const messageHistory = result.messageHistory || [];
-    const unresponded = messageHistory.filter(msg => !msg.hasResponse);
-    
-    if (unresponded.length === 0) return;
-    
-    debugLog(`Checking for responses to ${unresponded.length} messages...`);
-    
-    // Check each unresponded message
-    unresponded.forEach(function(messageData) {
-      checkMessageForResponse(messageData);
-    });
-  });
-}
 
-function checkMessageForResponse(messageData) {
-  // Try to find conversation with the person
-  const personName = messageData.personInfo?.name;
-  if (!personName) return;
-  
-  // Look for conversation elements
-  const conversationElements = document.querySelectorAll('[data-test-id*="conversation"]') ||
-                              document.querySelectorAll('.msg-conversation-listitem') ||
-                              document.querySelectorAll('.conversation-item');
-  
-  conversationElements.forEach(function(element) {
-    const elementText = element.textContent || '';
-    if (elementText.toLowerCase().includes(personName.toLowerCase())) {
-      // Found potential conversation, check for response indicators
-      const hasNewMessage = element.querySelector('.msg-conversation-card__unread-count') ||
-                           element.querySelector('[data-test-id*="unread"]') ||
-                           element.classList.contains('unread');
-      
-      const lastActivity = element.querySelector('.msg-conversation-card__time-stamp') ||
-                          element.querySelector('.time-stamp') ||
-                          element.querySelector('[data-test-id*="timestamp"]');
-      
-      if (hasNewMessage || checkRecentActivity(lastActivity, messageData.timestamp)) {
-        debugLog(`Potential response detected for message to ${personName}`);
-        markMessageAsResponded(messageData.id);
-        updateResponseAnalytics();
-      }
-    }
-  });
-}
-
-function checkRecentActivity(timeElement, originalTimestamp) {
-  if (!timeElement || !originalTimestamp) return false;
-  
-  const timeText = timeElement.textContent || '';
-  const originalTime = new Date(originalTimestamp);
-  const cutoffTime = new Date(originalTime.getTime() + (24 * 60 * 60 * 1000)); // 24 hours after
-  
-  // Simple heuristic: if activity shows very recent time (minutes, hours) 
-  // and it's after our message was sent
-  if (timeText.includes('min') || timeText.includes('hour') || timeText.includes('now')) {
-    return new Date() > originalTime;
-  }
-  
-  return false;
-}
-
-function markMessageAsResponded(messageId) {
-  chrome.storage.local.get(['messageHistory'], function(result) {
-    const messageHistory = result.messageHistory || [];
-    const updatedHistory = messageHistory.map(function(msg) {
-      if (msg.id === messageId) {
-        return { ...msg, hasResponse: true, responseDetectedAt: new Date().toISOString() };
-      }
-      return msg;
-    });
-    
-    chrome.storage.local.set({ messageHistory: updatedHistory }, function() {
-      debugLog(`Message ${messageId} marked as responded`);
-      showSuccessFeedback("Response detected! 🎉");
-    });
-  });
-}
-
-function updateResponseAnalytics() {
-  chrome.storage.local.get(['messageHistory', 'analytics'], function(result) {
-    const messageHistory = result.messageHistory || [];
-    const analytics = result.analytics || {};
-    
-    const totalSent = messageHistory.length;
-    const totalResponded = messageHistory.filter(msg => msg.hasResponse).length;
-    const responseRate = totalSent > 0 ? Math.round((totalResponded / totalSent) * 100) : 0;
-    
-    analytics.responseRate = responseRate;
-    analytics.totalResponses = totalResponded;
-    analytics.lastUpdated = new Date().toISOString();
-    
-    chrome.storage.local.set({ analytics: analytics }, function() {
-      debugLog(`Analytics updated: ${responseRate}% response rate`);
-    });
-  });
-}
-
-// Add persona detection functionality
-function detectPersonaFromProfile(personInfo) {
-  const title = (personInfo.title || '').toLowerCase();
-  const company = (personInfo.company || '').toLowerCase();
-  const about = (personInfo.about || '').toLowerCase();
-  
-  // Combine all text for analysis
-  const profileText = `${title} ${company} ${about}`.toLowerCase();
-  
-  // Recruiter indicators
-  const recruiterKeywords = [
-    'recruiter', 'recruiting', 'talent acquisition', 'talent partner', 'talent specialist',
-    'people operations', 'people partner', 'hr', 'human resources', 'staffing',
-    'head hunter', 'headhunter', 'sourcing', 'talent scout'
-  ];
-  
-  // Engineering Manager indicators
-  const engineeringManagerKeywords = [
-    'engineering manager', 'engineering lead', 'tech lead', 'technical lead',
-    'vp of engineering', 'vp engineering', 'head of engineering', 'engineering director',
-    'director of engineering', 'principal engineer', 'staff engineer', 'team lead',
-    'development manager', 'software manager', 'platform lead'
-  ];
-  
-  // Founder indicators
-  const founderKeywords = [
-    'founder', 'co-founder', 'cofounder', 'ceo', 'chief executive', 'entrepreneur',
-    'startup', 'owner', 'president', 'founding', 'creator', 'established'
-  ];
-  
-  // Check for recruiter
-  for (const keyword of recruiterKeywords) {
-    if (profileText.includes(keyword)) {
-      return 'recruiter';
-    }
-  }
-  
-  // Check for engineering manager
-  for (const keyword of engineeringManagerKeywords) {
-    if (profileText.includes(keyword)) {
-      return 'engineering_manager';
-    }
-  }
-  
-  // Check for founder
-  for (const keyword of founderKeywords) {
-    if (profileText.includes(keyword)) {
-      return 'founder';
-    }
-  }
-  
-  // Default to generic
-  return 'generic';
-}
-
-// Generate persona-specific AI prompts
-function createPersonaPrompt(persona, personInfo, messageType = 'connection') {
-  const contextParts = [];
-  
-  if (personInfo.name) contextParts.push(`Name: ${personInfo.name}`);
-  if (personInfo.title) contextParts.push(`Job title: ${personInfo.title}`);
-  if (personInfo.company) contextParts.push(`Company: ${personInfo.company}`);
-  if (personInfo.location) contextParts.push(`Location: ${personInfo.location}`);
-  
-  const context = contextParts.length > 0 ? `\n\nContext:\n${contextParts.join('\n')}` : '';
-  
-  let basePrompt = '';
+// Create improvement prompt for existing text
+function createImprovementPrompt(existingText, messageType = 'connection') {
+  var basePrompt = '';
   
   if (messageType === 'referral') {
-    return createReferralPrompt(persona, personInfo);
+    basePrompt = `Improve and enhance this LinkedIn referral request message. Make it more professional, engaging, and compelling while keeping the core intent. The improved message should be 250-300 characters max.
+
+Original message:
+"${existingText}"
+
+Please provide an improved version that:
+- Maintains the original intent and key points
+- Sounds more professional and polished
+- Is more likely to get a positive response
+- Follows LinkedIn etiquette
+- Is concise but impactful
+
+Return only the improved message, no explanations.`;
+  } else {
+    basePrompt = `Improve and enhance this LinkedIn connection request message. Make it more professional, engaging, and compelling while keeping the core intent. The improved message should be 200-250 characters max.
+
+Original message:
+"${existingText}"
+
+Please provide an improved version that:
+- Maintains the original intent and key points
+- Sounds more professional and polished
+- Is more likely to get a positive response
+- Follows LinkedIn connection etiquette
+- Is concise but impactful
+
+Return only the improved message, no explanations.`;
+  }
+  
+  return basePrompt;
+}
+
+// Generate persona-specific AI prompts (simplified for ToS compliance)
+function createPersonaPrompt(persona, messageType = 'connection') {
+  if (messageType === 'referral') {
+    return createReferralPrompt(persona);
   }
   
   switch (persona) {
     case 'recruiter':
-      basePrompt = `Write a professional LinkedIn connection message to a recruiter. Focus on:
+      return `Write a professional LinkedIn connection message to a recruiter. Focus on:
 - Your background and what type of opportunities you're seeking
 - Specific skills and experience that make you valuable
 - Interest in learning about opportunities at their company
@@ -2778,10 +1783,9 @@ function createPersonaPrompt(persona, personInfo, messageType = 'connection') {
 - 200-250 characters max
 
 Make it clear you're a serious candidate worth their time.`;
-      break;
       
     case 'engineering_manager':
-      basePrompt = `Write a professional LinkedIn connection message to an Engineering Manager. Focus on:
+      return `Write a professional LinkedIn connection message to an Engineering Manager. Focus on:
 - Your technical background and engineering experience
 - Interest in their team, projects, or engineering culture
 - Specific technologies or methodologies you share
@@ -2790,10 +1794,9 @@ Make it clear you're a serious candidate worth their time.`;
 - 200-250 characters max
 
 Show genuine interest in their technical leadership and engineering approach.`;
-      break;
       
     case 'founder':
-      basePrompt = `Write a professional LinkedIn connection message to a startup founder/CEO. Focus on:
+      return `Write a professional LinkedIn connection message to a startup founder/CEO. Focus on:
 - Your entrepreneurial spirit or business acumen
 - Interest in their company's mission and vision
 - How you could potentially add value to their organization
@@ -2802,10 +1805,19 @@ Show genuine interest in their technical leadership and engineering approach.`;
 - 200-250 characters max
 
 Show you understand the challenges of building a company and respect their achievements.`;
-      break;
+      
+    case 'general':
+      return `Write a professional LinkedIn connection message (ToS compliant - no profile scraping). Focus on:
+- Generic professional introduction
+- Interest in connecting with like-minded professionals
+- Mutual growth and networking opportunities
+- Warm and professional tone
+- 200-250 characters max
+
+Create a generic but authentic connection message.`;
       
     default:
-      basePrompt = `Write a professional LinkedIn connection message. Focus on:
+      return `Write a professional LinkedIn connection message. Focus on:
 - Finding common ground or shared interests
 - Professional background relevance
 - Genuine interest in connecting
@@ -2814,25 +1826,13 @@ Show you understand the challenges of building a company and respect their achie
 
 Make it personalized and authentic.`;
   }
-  
-  return basePrompt + context + '\n\nUse this information to create a personalized, relevant message.';
 }
 
-// Generate referral request prompts
-function createReferralPrompt(persona, personInfo) {
-  const contextParts = [];
-  
-  if (personInfo.name) contextParts.push(`Name: ${personInfo.name}`);
-  if (personInfo.title) contextParts.push(`Job title: ${personInfo.title}`);
-  if (personInfo.company) contextParts.push(`Company: ${personInfo.company}`);
-  
-  const context = contextParts.length > 0 ? `\n\nContext:\n${contextParts.join('\n')}` : '';
-  
-  let basePrompt = '';
-  
+// Generate referral request prompts (simplified for ToS compliance)
+function createReferralPrompt(persona) {
   switch (persona) {
     case 'recruiter':
-      basePrompt = `Write a LinkedIn message asking a recruiter for a referral. Focus on:
+      return `Write a LinkedIn message asking a recruiter for a referral. Focus on:
 - Brief introduction of your background
 - Specific role or type of position you're interested in
 - Why you're interested in their company
@@ -2842,10 +1842,9 @@ function createReferralPrompt(persona, personInfo) {
 - 250-300 characters max
 
 Make it clear you're a qualified candidate seeking a referral opportunity.`;
-      break;
       
     case 'engineering_manager':
-      basePrompt = `Write a LinkedIn message asking an Engineering Manager for a referral. Focus on:
+      return `Write a LinkedIn message asking an Engineering Manager for a referral. Focus on:
 - Your technical background and relevant experience
 - Specific interest in their team or engineering organization
 - Technologies or projects that align with their work
@@ -2855,10 +1854,9 @@ Make it clear you're a qualified candidate seeking a referral opportunity.`;
 - 250-300 characters max
 
 Show you're a serious engineer interested in their team specifically.`;
-      break;
       
     case 'founder':
-      basePrompt = `Write a LinkedIn message asking a founder for a referral. Focus on:
+      return `Write a LinkedIn message asking a founder for a referral. Focus on:
 - Your professional background and what you bring to the table
 - Genuine interest in their company's mission
 - How you could contribute to their organization
@@ -2868,10 +1866,9 @@ Show you're a serious engineer interested in their team specifically.`;
 - 250-300 characters max
 
 Show you understand their business and could be a valuable addition.`;
-      break;
       
     default:
-      basePrompt = `Write a LinkedIn message asking for a referral. Focus on:
+      return `Write a LinkedIn message asking for a referral. Focus on:
 - Brief professional introduction
 - Interest in their company or industry
 - Polite request for referral consideration
@@ -2881,7 +1878,5 @@ Show you understand their business and could be a valuable addition.`;
 
 Make it personalized and show genuine interest.`;
   }
-  
-  return basePrompt + context + '\n\nUse this information to create a personalized referral request.';
 }
 

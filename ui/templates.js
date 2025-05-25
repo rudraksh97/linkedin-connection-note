@@ -20,9 +20,6 @@ const UITemplates = {
         <button id="tab-saved" class="main-tab" style="flex:1; padding:10px 14px; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; background:transparent; color:#64748b; transition:all 0.2s ease;">
           Saved
         </button>
-        <button id="tab-history" class="main-tab" style="flex:1; padding:10px 14px; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; background:transparent; color:#64748b; transition:all 0.2s ease;">
-          History
-        </button>
       </div>
     </div>
     
@@ -30,7 +27,6 @@ const UITemplates = {
     <div id="main-content" style="flex:1; overflow-y:auto; min-height:0;">
       {{createTabContent}}
       {{savedTabContent}}
-      {{historyTabContent}}
     </div>
   `,
 
@@ -38,15 +34,7 @@ const UITemplates = {
   createTabContent: `
     <div id="create-content" style="display:block;">
       <div>
-        <!-- Persona Detection Display -->
-        <div id="persona-detection" style="margin-bottom:16px; padding:12px; background:linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border:1px solid #bae6fd; border-radius:10px; display:none;">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-            <span id="persona-icon" style="font-size:16px;">👤</span>
-            <span style="font-size:13px; font-weight:600; color:#0369a1;">Detected Profile Type:</span>
-            <span id="persona-label" style="font-size:13px; font-weight:700; color:#075985;"></span>
-          </div>
-          <p style="margin:0; font-size:11px; color:#0c4a6e; line-height:1.4;">Messages will be tailored for this professional role</p>
-        </div>
+
         
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
           <div style="width:3px; height:20px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius:2px;"></div>
@@ -135,18 +123,7 @@ const UITemplates = {
     </div>
   `,
 
-  // History tab content template
-  historyTabContent: `
-    <div id="history-content" style="display:none;">
-      <div id="history-messages-list">
-        <div style="text-align:center; padding:40px 20px; color:#64748b; font-size:14px;">
-          <div style="width:80px; height:80px; background:linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius:20px; margin:0 auto 20px auto; display:flex; align-items:center; justify-content:center; font-size:32px; border:2px solid #e2e8f0;">📊</div>
-          <h3 style="margin:0 0 8px 0; font-size:18px; font-weight:700; color:#374151;">No message history yet</h3>
-          <p style="margin:0; font-size:14px; color:#64748b; line-height:1.5; max-width:280px; margin:0 auto;">Sent messages will appear here for future reference and reuse</p>
-        </div>
-      </div>
-    </div>
-  `,
+
 
   // API Key modal template
   apiKeyModal: `
@@ -191,8 +168,7 @@ function getTemplate(templateName, substitutions = {}) {
   if (templateName === 'mainContainer') {
     template = template
       .replace('{{createTabContent}}', UITemplates.createTabContent)
-      .replace('{{savedTabContent}}', UITemplates.savedTabContent)
-      .replace('{{historyTabContent}}', UITemplates.historyTabContent);
+      .replace('{{savedTabContent}}', UITemplates.savedTabContent);
   }
 
   // Apply any substitutions

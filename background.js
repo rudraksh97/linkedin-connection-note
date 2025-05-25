@@ -3,7 +3,6 @@
 const apiURL = 'https://api.openai.com/v1/chat/completions';
 const API_KEY_STORAGE_KEY = 'linkedinAI_openaiApiKey';
 const SAVED_MESSAGES_KEY = 'linkedinAI_savedMessages';
-const MESSAGE_HISTORY_KEY = 'linkedinAI_messageHistory';
 
 // Helper function to generate secure IDs
 function generateSecureId() {
@@ -187,74 +186,7 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
       return true;
     }
 
-    // Add message to history
-    if (req.action === 'addToHistory') {
-      chrome.storage.local.get([MESSAGE_HISTORY_KEY])
-        .then(result => {
-          const history = result[MESSAGE_HISTORY_KEY] || [];
-          const newHistoryItem = {
-            id: generateSecureId(),
-            message: req.message,
-            source: req.source, // 'ai' or 'saved'
-            timestamp: Date.now()
-          };
-          
-          // Check if message already exists in recent history (last 5 items)
-          const recentHistory = history.slice(0, 5);
-          const isDuplicate = recentHistory.some(item => item.message === req.message);
-          
-          if (!isDuplicate) {
-            history.unshift(newHistoryItem); // Add to beginning
-            
-            // Keep only last 100 history items
-            if (history.length > 100) {
-              history.splice(100);
-            }
-            
-            return chrome.storage.local.set({ [MESSAGE_HISTORY_KEY]: history });
-          }
-          return Promise.resolve(); // Skip saving if duplicate
-        })
-        .then(() => {
-          sendResponse({ success: true });
-        })
-        .catch(error => {
-          console.error('Error adding to history:', error);
-          sendResponse({ error: error.message });
-        });
-      return true;
-    }
 
-    // Get message history
-    if (req.action === 'getMessageHistory') {
-      chrome.storage.local.get([MESSAGE_HISTORY_KEY])
-        .then(result => {
-          sendResponse({ history: result[MESSAGE_HISTORY_KEY] || [] });
-        })
-        .catch(error => {
-          console.error('Error getting message history:', error);
-          sendResponse({ error: error.message });
-        });
-      return true;
-    }
-
-    // Delete history message
-    if (req.action === 'deleteHistoryMessage') {
-      chrome.storage.local.get([MESSAGE_HISTORY_KEY])
-        .then(result => {
-          const history = result[MESSAGE_HISTORY_KEY] || [];
-          const filteredHistory = history.filter(msg => msg.id !== req.messageId);
-          return chrome.storage.local.set({ [MESSAGE_HISTORY_KEY]: filteredHistory });
-        })
-        .then(() => {
-          sendResponse({ success: true });
-        })
-        .catch(error => {
-          console.error('Error deleting history message:', error);
-          sendResponse({ error: error.message });
-        });
-      return true;
-    }
     
     // Handle unknown actions
     sendResponse({ error: 'Unknown action: ' + req.action });
