@@ -135,21 +135,92 @@ const UITemplates = {
 
   // API Key modal template
   apiKeyModal: `
-    <div style="background:white; padding:32px; border-radius:16px; max-width:420px; width:90%; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);">
+    <div style="background:white; padding:32px; border-radius:16px; max-width:480px; width:90%; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);">
       <div style="text-align:center; margin-bottom:24px;">
-        <div style="width:64px; height:64px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius:16px; margin:0 auto 16px auto; display:flex; align-items:center; justify-content:center; font-size:28px;">🔑</div>
-        <h3 style="margin:0 0 8px 0; color:#111827; font-size:20px; font-weight:700;">API Key Required</h3>
-        <p style="margin:0; color:#6b7280; font-size:14px; line-height:1.5;">Get your free API key from <a href="https://platform.openai.com/api-keys" target="_blank" style="color:#3b82f6; text-decoration:none; font-weight:600;">OpenAI Platform</a></p>
+        <div style="width:64px; height:64px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius:16px; margin:0 auto 16px auto; display:flex; align-items:center; justify-content:center; font-size:28px;">🤖</div>
+        <h3 style="margin:0 0 8px 0; color:#111827; font-size:20px; font-weight:700;">AI Provider Configuration</h3>
+        <p style="margin:0; color:#6b7280; font-size:14px; line-height:1.5;">Choose your AI provider and configure settings</p>
       </div>
+      
       <div style="margin-bottom:24px;">
-        <label style="display:block; margin-bottom:8px; color:#374151; font-size:14px; font-weight:600;">Enter your OpenAI API Key:</label>
+        <label style="display:block; margin-bottom:12px; color:#374151; font-size:14px; font-weight:600;">AI Provider:</label>
+        <div style="display:flex; gap:12px; margin-bottom:16px;">
+          <label style="flex:1; display:flex; align-items:center; padding:12px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer; transition:all 0.2s ease;" id="provider-openai-label">
+            <input type="radio" name="provider" value="openai" id="provider-openai" style="margin-right:8px;">
+            <div>
+              <div style="font-weight:600; color:#374151;">OpenAI</div>
+              <div style="font-size:12px; color:#6b7280;">Paid API</div>
+            </div>
+          </label>
+          <label style="flex:1; display:flex; align-items:center; padding:12px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer; transition:all 0.2s ease;" id="provider-ollama-label">
+            <input type="radio" name="provider" value="ollama" id="provider-ollama" style="margin-right:8px;">
+            <div>
+              <div style="font-weight:600; color:#374151;">Ollama</div>
+              <div style="font-size:12px; color:#6b7280;">Free & Local</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div id="openai-config" style="margin-bottom:24px; display:none;">
+        <label style="display:block; margin-bottom:8px; color:#374151; font-size:14px; font-weight:600;">OpenAI API Key:</label>
         <input type="password" id="api-key-input" placeholder="sk-..." style="width:100%; padding:14px 16px; border:2px solid #e5e7eb; border-radius:12px; font-size:14px; font-family:monospace; box-sizing:border-box; cursor:text; user-select:text; pointer-events:auto; background:white; outline:none; transition:all 0.2s ease; box-shadow:0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+        <p style="margin:8px 0 0 0; color:#6b7280; font-size:12px;">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" style="color:#3b82f6; text-decoration:none; font-weight:600;">OpenAI Platform</a></p>
       </div>
+
+      <div id="ollama-config" style="margin-bottom:24px; display:none;">
+        <div style="margin-bottom:16px;">
+          <label style="display:block; margin-bottom:8px; color:#374151; font-size:14px; font-weight:600;">Ollama Server URL:</label>
+          <input type="text" id="ollama-url-input" placeholder="http://localhost:11434" style="width:100%; padding:14px 16px; border:2px solid #e5e7eb; border-radius:12px; font-size:14px; box-sizing:border-box; cursor:text; user-select:text; pointer-events:auto; background:white; outline:none; transition:all 0.2s ease; box-shadow:0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="display:block; margin-bottom:8px; color:#374151; font-size:14px; font-weight:600;">Model:</label>
+          <select id="ollama-model-select" style="width:100%; padding:14px 16px; border:2px solid #e5e7eb; border-radius:12px; font-size:14px; box-sizing:border-box; background:white; outline:none; transition:all 0.2s ease; box-shadow:0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+            <option value="llama3.2">Llama 3.2 (Recommended)</option>
+            <option value="llama3.1">Llama 3.1</option>
+            <option value="llama3">Llama 3</option>
+            <option value="mistral">Mistral</option>
+            <option value="codellama">Code Llama</option>
+            <option value="phi3">Phi-3</option>
+            <option value="gemma2">Gemma 2</option>
+          </select>
+        </div>
+        <div style="margin-bottom:16px;">
+          <button id="test-ollama-connection" style="width:100%; padding:12px 16px; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease;">
+            🔍 Test Connection
+          </button>
+          <div id="ollama-test-result" style="margin-top:8px; font-size:12px; display:none;"></div>
+        </div>
+        <div style="background:#f8fafc; padding:12px; border-radius:8px; border-left:4px solid #3b82f6;">
+          <p style="margin:0; color:#374151; font-size:12px; line-height:1.4;">
+            <strong>Quick Setup:</strong><br>
+            <button id="auto-setup-ollama" style="background:#3b82f6; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; margin:4px 0;">
+              🚀 Auto-Setup Ollama
+            </button><br>
+            <span style="font-size:10px; color:#6b7280;">One-click installation and model download</span>
+          </p>
+          <div id="setup-progress" style="display:none; margin-top:8px;">
+            <div style="background:#e5e7eb; border-radius:4px; height:6px; overflow:hidden;">
+              <div id="progress-bar" style="background:#3b82f6; height:100%; width:0%; transition:width 0.3s ease;"></div>
+            </div>
+            <p id="setup-status" style="margin:4px 0 0 0; font-size:10px; color:#374151;">Preparing setup...</p>
+          </div>
+          <details style="margin-top:8px;">
+            <summary style="cursor:pointer; font-size:11px; color:#6b7280;">Manual Setup Instructions</summary>
+            <div style="margin-top:4px; font-size:10px; color:#6b7280;">
+              1. Install from <a href="https://ollama.ai" target="_blank" style="color:#3b82f6;">ollama.ai</a><br>
+              2. Run: <code style="background:#e5e7eb; padding:1px 3px; border-radius:3px;">ollama pull llama3.2</code><br>
+              3. Start: <code style="background:#e5e7eb; padding:1px 3px; border-radius:3px;">ollama serve</code>
+            </div>
+          </details>
+        </div>
+      </div>
+
       <div style="display:flex; gap:12px;">
-        <button id="save-api-key-btn" style="flex:1; padding:14px 20px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1);">Save & Continue</button>
-        <button id="cancel-api-key-btn" style="padding:14px 20px; background:#f8fafc; color:#374151; border:1px solid #e5e7eb; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease;">Cancel</button>
+        <button id="save-config-btn" style="flex:1; padding:14px 20px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1);">Save & Continue</button>
+        <button id="cancel-config-btn" style="padding:14px 20px; background:#f8fafc; color:#374151; border:1px solid #e5e7eb; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease;">Cancel</button>
       </div>
-      <p style="margin:16px 0 0 0; color:#6b7280; font-size:12px; text-align:center; line-height:1.4;">Your API key is stored securely in your browser and never shared.</p>
+      <p style="margin:16px 0 0 0; color:#6b7280; font-size:12px; text-align:center; line-height:1.4;">Your configuration is stored securely in your browser and never shared.</p>
     </div>
   `,
 

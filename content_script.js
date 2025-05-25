@@ -1967,38 +1967,142 @@ function showApiKeyPrompt() {
 
 // Set up API key modal handlers
 function setupApiKeyModalHandlers() {
-  var input = document.getElementById('api-key-input');
-  var saveBtn = document.getElementById('save-api-key-btn');
-  var cancelBtn = document.getElementById('cancel-api-key-btn');
+  var apiKeyInput = document.getElementById('api-key-input');
+  var ollamaUrlInput = document.getElementById('ollama-url-input');
+  var ollamaModelSelect = document.getElementById('ollama-model-select');
+  var saveBtn = document.getElementById('save-config-btn');
+  var cancelBtn = document.getElementById('cancel-config-btn');
   var overlay = document.getElementById('api-key-overlay');
+  var providerOpenAI = document.getElementById('provider-openai');
+  var providerOllama = document.getElementById('provider-ollama');
+  var openaiConfig = document.getElementById('openai-config');
+  var ollamaConfig = document.getElementById('ollama-config');
   
-  if (!input || !saveBtn || !cancelBtn || !overlay) return;
+  if (!saveBtn || !cancelBtn || !overlay || !providerOpenAI || !providerOllama) return;
   
-  // Load existing API key
+  // Provider selection handlers
+  function showProviderConfig() {
+    if (providerOpenAI.checked) {
+      openaiConfig.style.display = 'block';
+      ollamaConfig.style.display = 'none';
+      document.getElementById('provider-openai-label').style.borderColor = '#3b82f6';
+      document.getElementById('provider-openai-label').style.backgroundColor = '#eff6ff';
+      document.getElementById('provider-ollama-label').style.borderColor = '#e5e7eb';
+      document.getElementById('provider-ollama-label').style.backgroundColor = 'white';
+    } else if (providerOllama.checked) {
+      openaiConfig.style.display = 'none';
+      ollamaConfig.style.display = 'block';
+      document.getElementById('provider-ollama-label').style.borderColor = '#3b82f6';
+      document.getElementById('provider-ollama-label').style.backgroundColor = '#eff6ff';
+      document.getElementById('provider-openai-label').style.borderColor = '#e5e7eb';
+      document.getElementById('provider-openai-label').style.backgroundColor = 'white';
+    }
+  }
+  
+  providerOpenAI.onchange = showProviderConfig;
+  providerOllama.onchange = showProviderConfig;
+  
+  // Load existing configuration
   if (chrome && chrome.runtime) {
+    // Load provider
+    chrome.runtime.sendMessage({ action: 'getProvider' }, function(response) {
+      if (chrome.runtime.lastError) {
+        console.error('Chrome runtime error loading provider:', chrome.runtime.lastError);
+        return;
+      }
+      if (response && response.provider) {
+        if (response.provider === 'ollama') {
+          providerOllama.checked = true;
+        } else {
+          providerOpenAI.checked = true;
+        }
+        showProviderConfig();
+      } else {
+        providerOpenAI.checked = true;
+        showProviderConfig();
+      }
+    });
+    
+    // Load OpenAI API key
     chrome.runtime.sendMessage({ action: 'getApiKey' }, function(response) {
       if (chrome.runtime.lastError) {
         console.error('Chrome runtime error loading API key:', chrome.runtime.lastError);
         return;
       }
-      if (response && response.apiKey) {
-        input.value = response.apiKey;
+      if (response && response.apiKey && apiKeyInput) {
+        apiKeyInput.value = response.apiKey;
+      }
+    });
+    
+    // Load Ollama config
+    chrome.runtime.sendMessage({ action: 'getOllamaConfig' }, function(response) {
+      if (chrome.runtime.lastError) {
+        console.error('Chrome runtime error loading Ollama config:', chrome.runtime.lastError);
+        return;
+      }
+      if (response) {
+        if (ollamaUrlInput) ollamaUrlInput.value = response.url || 'http://localhost:11434';
+        if (ollamaModelSelect) ollamaModelSelect.value = response.model || 'llama3.2';
       }
     });
   }
   
-  // Save API key button
+  // Auto-setup Ollama button
+  var autoSetupBtn = document.getElementById('auto-setup-ollama');
+  if (autoSetupBtn) {
+    autoSetupBtn.onclick = function() {
+      startOllamaAutoSetup();
+    };
+  }
+
+  // Test Ollama connection button
+  var testOllamaBtn = document.getElementById('test-ollama-connection');
+  if (testOllamaBtn) {
+    testOllamaBtn.onclick = function() {
+      var url = ollamaUrlInput ? ollamaUrlInput.value.trim() : 'http://localhost:11434';
+      if (!url) {
+        showOllamaTestResult('Please enter a server URL', 'error');
+        return;
+      }
+      
+      testOllamaBtn.disabled = true;
+      testOllamaBtn.textContent = '🔄 Testing...';
+      
+      if (!chrome || !chrome.runtime) {
+        testOllamaBtn.disabled = false;
+        testOllamaBtn.textContent = '🔍 Test Connection';
+        showOllamaTestResult('Extension context lost. Please reload the page.', 'error');
+        return;
+      }
+      
+      chrome.runtime.sendMessage({ action: 'testOllamaConnection', url: url }, function(response) {
+        testOllamaBtn.disabled = false;
+        testOllamaBtn.textContent = '🔍 Test Connection';
+        
+        if (chrome.runtime.lastError) {
+          showOllamaTestResult('Extension error: ' + chrome.runtime.lastError.message, 'error');
+          return;
+        }
+        
+        if (response && response.success) {
+          var modelCount = response.models ? response.models.length : 0;
+          showOllamaTestResult(`✅ Connected! Found ${modelCount} models available.`, 'success');
+          
+          // Update model dropdown with available models
+          if (response.models && response.models.length > 0 && ollamaModelSelect) {
+            updateModelDropdown(response.models);
+          }
+        } else {
+          var errorMsg = response && response.error ? response.error : 'Unknown error';
+          showOllamaTestResult('❌ ' + errorMsg, 'error');
+        }
+      });
+    };
+  }
+
+  // Save configuration button
   saveBtn.onclick = function() {
-    var apiKey = input.value.trim();
-    if (!apiKey) {
-      showLeftPanelFeedback('Please enter an API key', 'error');
-      return;
-    }
-    
-    if (!apiKey.startsWith('sk-')) {
-      showLeftPanelFeedback('API key should start with "sk-"', 'error');
-      return;
-    }
+    var selectedProvider = providerOpenAI.checked ? 'openai' : 'ollama';
     
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
@@ -2010,22 +2114,78 @@ function setupApiKeyModalHandlers() {
       return;
     }
     
-    chrome.runtime.sendMessage({ action: 'saveApiKey', apiKey: apiKey }, function(response) {
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Save & Continue';
-      
-      if (chrome.runtime.lastError) {
-        showLeftPanelFeedback('Extension error. Please reload the page.', 'error');
+    if (selectedProvider === 'openai') {
+      var apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
+      if (!apiKey) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save & Continue';
+        showLeftPanelFeedback('Please enter an OpenAI API key', 'error');
         return;
       }
       
-      if (response && response.success) {
-        showLeftPanelFeedback('API key saved successfully!', 'success');
-        overlay.remove();
-      } else {
-        showLeftPanelFeedback('Failed to save API key. Please try again.', 'error');
+      if (!apiKey.startsWith('sk-')) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save & Continue';
+        showLeftPanelFeedback('API key should start with "sk-"', 'error');
+        return;
       }
-    });
+      
+      // Save OpenAI configuration
+      chrome.runtime.sendMessage({ action: 'saveProvider', provider: 'openai' }, function(response) {
+        if (chrome.runtime.lastError || !response || !response.success) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save & Continue';
+          showLeftPanelFeedback('Failed to save provider. Please try again.', 'error');
+          return;
+        }
+        
+        chrome.runtime.sendMessage({ action: 'saveApiKey', apiKey: apiKey }, function(response) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save & Continue';
+          
+          if (chrome.runtime.lastError || !response || !response.success) {
+            showLeftPanelFeedback('Failed to save API key. Please try again.', 'error');
+            return;
+          }
+          
+          showLeftPanelFeedback('OpenAI configuration saved successfully!', 'success');
+          overlay.remove();
+        });
+      });
+    } else {
+      // Save Ollama configuration
+      var ollamaUrl = ollamaUrlInput ? ollamaUrlInput.value.trim() : 'http://localhost:11434';
+      var ollamaModel = ollamaModelSelect ? ollamaModelSelect.value : 'llama3.2';
+      
+      if (!ollamaUrl) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save & Continue';
+        showLeftPanelFeedback('Please enter Ollama server URL', 'error');
+        return;
+      }
+      
+      chrome.runtime.sendMessage({ action: 'saveProvider', provider: 'ollama' }, function(response) {
+        if (chrome.runtime.lastError || !response || !response.success) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save & Continue';
+          showLeftPanelFeedback('Failed to save provider. Please try again.', 'error');
+          return;
+        }
+        
+        chrome.runtime.sendMessage({ action: 'saveOllamaConfig', url: ollamaUrl, model: ollamaModel }, function(response) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save & Continue';
+          
+          if (chrome.runtime.lastError || !response || !response.success) {
+            showLeftPanelFeedback('Failed to save Ollama configuration. Please try again.', 'error');
+            return;
+          }
+          
+          showLeftPanelFeedback('Ollama configuration saved successfully!', 'success');
+          overlay.remove();
+        });
+      });
+    }
   };
   
   // Cancel button
@@ -2040,41 +2200,561 @@ function setupApiKeyModalHandlers() {
     }
   };
   
-  // Ensure input is clickable and focusable
-  input.style.pointerEvents = 'auto';
-  input.style.cursor = 'text';
-  input.style.userSelect = 'text';
+  // Ensure inputs are clickable and focusable
+  if (apiKeyInput) {
+    apiKeyInput.style.pointerEvents = 'auto';
+    apiKeyInput.style.cursor = 'text';
+    apiKeyInput.style.userSelect = 'text';
+    
+    apiKeyInput.onclick = function() {
+      this.focus();
+    };
+    
+    apiKeyInput.onfocus = function() {
+      this.style.borderColor = '#0077b5';
+      this.style.boxShadow = '0 0 0 2px rgba(0, 119, 181, 0.2)';
+    };
+    
+    apiKeyInput.onblur = function() {
+      this.style.borderColor = '#d1d5db';
+      this.style.boxShadow = 'none';
+    };
+    
+    apiKeyInput.onkeypress = function(e) {
+      if (e.key === 'Enter') {
+        saveBtn.click();
+      }
+    };
+  }
   
-  // Add click handler to ensure focus works
-  input.onclick = function() {
-    this.focus();
-  };
+  if (ollamaUrlInput) {
+    ollamaUrlInput.style.pointerEvents = 'auto';
+    ollamaUrlInput.style.cursor = 'text';
+    ollamaUrlInput.style.userSelect = 'text';
+    
+    ollamaUrlInput.onclick = function() {
+      this.focus();
+    };
+    
+    ollamaUrlInput.onfocus = function() {
+      this.style.borderColor = '#0077b5';
+      this.style.boxShadow = '0 0 0 2px rgba(0, 119, 181, 0.2)';
+    };
+    
+    ollamaUrlInput.onblur = function() {
+      this.style.borderColor = '#d1d5db';
+      this.style.boxShadow = 'none';
+    };
+    
+    ollamaUrlInput.onkeypress = function(e) {
+      if (e.key === 'Enter') {
+        saveBtn.click();
+      }
+    };
+  }
   
-  // Add focus and blur styling
-  input.onfocus = function() {
-    this.style.borderColor = '#0077b5';
-    this.style.boxShadow = '0 0 0 2px rgba(0, 119, 181, 0.2)';
-  };
-  
-  input.onblur = function() {
-    this.style.borderColor = '#d1d5db';
-    this.style.boxShadow = 'none';
-  };
-  
-  // Enter key to save
-  input.onkeypress = function(e) {
-    if (e.key === 'Enter') {
-      saveBtn.click();
-    }
-  };
-  
-  // Focus input with a small delay to ensure it's rendered
+  // Focus appropriate input with a small delay to ensure it's rendered
   setTimeout(function() {
-    if (input) {
-      input.focus();
-      input.select(); // Select any existing text
+    if (providerOpenAI.checked && apiKeyInput) {
+      apiKeyInput.focus();
+      apiKeyInput.select();
+    } else if (providerOllama.checked && ollamaUrlInput) {
+      ollamaUrlInput.focus();
+      ollamaUrlInput.select();
     }
   }, 100);
+}
+
+// Show Ollama test result
+function showOllamaTestResult(message, type) {
+  var resultDiv = document.getElementById('ollama-test-result');
+  if (!resultDiv) return;
+  
+  resultDiv.style.display = 'block';
+  resultDiv.style.color = type === 'success' ? '#10b981' : '#ef4444';
+  resultDiv.style.backgroundColor = type === 'success' ? '#d1fae5' : '#fee2e2';
+  resultDiv.style.padding = '8px 12px';
+  resultDiv.style.borderRadius = '6px';
+  resultDiv.style.border = '1px solid ' + (type === 'success' ? '#a7f3d0' : '#fecaca');
+  resultDiv.textContent = message;
+  
+  // Auto-hide after 5 seconds for success messages
+  if (type === 'success') {
+    setTimeout(function() {
+      if (resultDiv) {
+        resultDiv.style.display = 'none';
+      }
+    }, 5000);
+  }
+}
+
+// Update model dropdown with available models
+function updateModelDropdown(models) {
+  var modelSelect = document.getElementById('ollama-model-select');
+  if (!modelSelect || !models || models.length === 0) return;
+  
+  // Store current selection
+  var currentValue = modelSelect.value;
+  
+  // Clear existing options
+  modelSelect.innerHTML = '';
+  
+  // Add available models
+  models.forEach(function(model) {
+    var option = document.createElement('option');
+    option.value = model.name;
+    option.textContent = model.name + (model.size ? ' (' + formatBytes(model.size) + ')' : '');
+    modelSelect.appendChild(option);
+  });
+  
+  // Restore selection if it still exists
+  if (currentValue) {
+    var foundOption = Array.from(modelSelect.options).find(opt => opt.value === currentValue);
+    if (foundOption) {
+      modelSelect.value = currentValue;
+    }
+  }
+  
+  // If no selection or selection not found, select first option
+  if (!modelSelect.value && modelSelect.options.length > 0) {
+    modelSelect.value = modelSelect.options[0].value;
+  }
+}
+
+// Format bytes to human readable format
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  var k = 1024;
+  var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  var i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Auto-setup Ollama with guided installation
+function startOllamaAutoSetup() {
+  var setupBtn = document.getElementById('auto-setup-ollama');
+  var progressDiv = document.getElementById('setup-progress');
+  var progressBar = document.getElementById('progress-bar');
+  var statusText = document.getElementById('setup-status');
+  
+  if (!setupBtn || !progressDiv || !progressBar || !statusText) return;
+  
+  // Show progress and disable button
+  setupBtn.disabled = true;
+  setupBtn.textContent = '⏳ Setting up...';
+  progressDiv.style.display = 'block';
+  
+  // Step 1: Detect operating system
+  updateSetupProgress(10, 'Detecting your operating system...');
+  
+  setTimeout(function() {
+    var os = detectOperatingSystem();
+    updateSetupProgress(20, 'Detected: ' + os);
+    
+    setTimeout(function() {
+      // Step 2: Check if Ollama is already installed
+      updateSetupProgress(30, 'Checking for existing Ollama installation...');
+      
+      setTimeout(function() {
+        checkOllamaInstallation(function(isInstalled) {
+          if (isInstalled) {
+            updateSetupProgress(60, 'Ollama found! Checking for models...');
+            setTimeout(function() {
+              checkAndSetupModels();
+            }, 1000);
+          } else {
+            updateSetupProgress(40, 'Ollama not found. Opening installation guide...');
+            setTimeout(function() {
+              openInstallationGuide(os);
+            }, 1000);
+          }
+        });
+      }, 1000);
+    }, 1000);
+  }, 1000);
+}
+
+// Update setup progress
+function updateSetupProgress(percentage, status) {
+  var progressBar = document.getElementById('progress-bar');
+  var statusText = document.getElementById('setup-status');
+  
+  if (progressBar) progressBar.style.width = percentage + '%';
+  if (statusText) statusText.textContent = status;
+}
+
+// Detect operating system
+function detectOperatingSystem() {
+  var userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.indexOf('win') !== -1) return 'Windows';
+  if (userAgent.indexOf('mac') !== -1) return 'macOS';
+  if (userAgent.indexOf('linux') !== -1) return 'Linux';
+  return 'Unknown';
+}
+
+// Check if Ollama is already installed
+function checkOllamaInstallation(callback) {
+  if (!chrome || !chrome.runtime) {
+    callback(false);
+    return;
+  }
+  
+  chrome.runtime.sendMessage({ 
+    action: 'testOllamaConnection', 
+    url: 'http://localhost:11434' 
+  }, function(response) {
+    if (chrome.runtime.lastError) {
+      callback(false);
+      return;
+    }
+    callback(response && response.success);
+  });
+}
+
+// Check and setup models
+function checkAndSetupModels() {
+  chrome.runtime.sendMessage({ 
+    action: 'testOllamaConnection', 
+    url: 'http://localhost:11434' 
+  }, function(response) {
+    if (chrome.runtime.lastError || !response || !response.success) {
+      updateSetupProgress(70, 'Ollama server not running. Please start it manually.');
+      setTimeout(function() {
+        showOllamaStartInstructions();
+      }, 2000);
+      return;
+    }
+    
+    var models = response.models || [];
+    var hasRecommendedModel = models.some(function(model) {
+      return model.name.includes('llama3.2') || model.name.includes('llama3.1');
+    });
+    
+    if (hasRecommendedModel) {
+      updateSetupProgress(100, '✅ Setup complete! Ollama is ready to use.');
+      setTimeout(function() {
+        completeAutoSetup(true);
+      }, 1500);
+    } else {
+      updateSetupProgress(80, 'Installing recommended model...');
+      setTimeout(function() {
+        showModelInstallInstructions();
+      }, 1000);
+    }
+  });
+}
+
+// Open installation guide based on OS
+function openInstallationGuide(os) {
+  var instructions = getInstallationInstructions(os);
+  updateSetupProgress(50, 'Opening installation guide...');
+  
+  // Create a modal with installation instructions
+  var modal = createInstallationModal(os, instructions);
+  document.body.appendChild(modal);
+  
+  setTimeout(function() {
+    updateSetupProgress(60, 'Follow the installation guide, then click "Check Again"');
+  }, 1000);
+}
+
+// Get OS-specific installation instructions
+function getInstallationInstructions(os) {
+  switch (os) {
+    case 'Windows':
+      return {
+        title: 'Install Ollama on Windows',
+        steps: [
+          'Download Ollama for Windows from ollama.ai',
+          'Run the installer (OllamaSetup.exe)',
+          'Follow the installation wizard',
+          'Ollama will start automatically after installation'
+        ],
+        downloadUrl: 'https://ollama.ai/download/windows',
+        commands: [
+          'After installation, open Command Prompt and run:',
+          'ollama pull llama3.2'
+        ]
+      };
+    case 'macOS':
+      return {
+        title: 'Install Ollama on macOS',
+        steps: [
+          'Download Ollama for macOS from ollama.ai',
+          'Open the downloaded .zip file',
+          'Drag Ollama to your Applications folder',
+          'Open Ollama from Applications'
+        ],
+        downloadUrl: 'https://ollama.ai/download/mac',
+        commands: [
+          'After installation, open Terminal and run:',
+          'ollama pull llama3.2'
+        ]
+      };
+    case 'Linux':
+      return {
+        title: 'Install Ollama on Linux',
+        steps: [
+          'Open Terminal',
+          'Run the installation command below',
+          'Wait for installation to complete',
+          'Ollama will start automatically'
+        ],
+        downloadUrl: 'https://ollama.ai/download/linux',
+        commands: [
+          'curl -fsSL https://ollama.ai/install.sh | sh',
+          'ollama pull llama3.2'
+        ]
+      };
+    default:
+      return {
+        title: 'Install Ollama',
+        steps: [
+          'Visit ollama.ai',
+          'Download the version for your operating system',
+          'Follow the installation instructions',
+          'Start Ollama after installation'
+        ],
+        downloadUrl: 'https://ollama.ai',
+        commands: [
+          'After installation, run:',
+          'ollama pull llama3.2'
+        ]
+      };
+  }
+}
+
+// Create installation modal
+function createInstallationModal(os, instructions) {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 
+    'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); ' +
+    'z-index:30000; display:flex; align-items:center; justify-content:center;';
+  
+  var modal = document.createElement('div');
+  modal.style.cssText = 
+    'background:white; padding:32px; border-radius:16px; max-width:500px; width:90%; ' +
+    'box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25); max-height:80vh; overflow-y:auto;';
+  
+  modal.innerHTML = `
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="width:64px; height:64px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius:16px; margin:0 auto 16px auto; display:flex; align-items:center; justify-content:center; font-size:28px;">🚀</div>
+      <h3 style="margin:0 0 8px 0; color:#111827; font-size:20px; font-weight:700;">${instructions.title}</h3>
+      <p style="margin:0; color:#6b7280; font-size:14px;">Follow these steps to install Ollama</p>
+    </div>
+    
+    <div style="margin-bottom:24px;">
+      <h4 style="margin:0 0 12px 0; color:#374151; font-size:16px; font-weight:600;">Installation Steps:</h4>
+      <ol style="margin:0; padding-left:20px; color:#374151; font-size:14px; line-height:1.6;">
+        ${instructions.steps.map(step => `<li style="margin-bottom:8px;">${step}</li>`).join('')}
+      </ol>
+    </div>
+    
+    <div style="margin-bottom:24px;">
+      <h4 style="margin:0 0 12px 0; color:#374151; font-size:16px; font-weight:600;">Commands to Run:</h4>
+      <div style="background:#f8fafc; padding:12px; border-radius:8px; border-left:4px solid #3b82f6;">
+        ${instructions.commands.map(cmd => 
+          cmd.startsWith('curl') || cmd.startsWith('ollama') ? 
+            `<code style="display:block; background:#e5e7eb; padding:8px; border-radius:4px; margin:4px 0; font-family:monospace; font-size:12px;">${cmd}</code>` :
+            `<p style="margin:4px 0; font-size:12px; color:#374151;">${cmd}</p>`
+        ).join('')}
+      </div>
+    </div>
+    
+    <div style="display:flex; gap:12px;">
+      <button id="download-ollama" style="flex:1; padding:14px 20px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600;">
+        📥 Download Ollama
+      </button>
+      <button id="check-again" style="flex:1; padding:14px 20px; background:#10b981; color:white; border:none; border-radius:12px; cursor:pointer; font-size:14px; font-weight:600;">
+        🔄 Check Again
+      </button>
+    </div>
+    
+    <button id="close-modal" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">×</button>
+  `;
+  
+  overlay.appendChild(modal);
+  
+  // Set up event handlers
+  setTimeout(function() {
+    var downloadBtn = modal.querySelector('#download-ollama');
+    var checkBtn = modal.querySelector('#check-again');
+    var closeBtn = modal.querySelector('#close-modal');
+    
+    if (downloadBtn) {
+      downloadBtn.onclick = function() {
+        window.open(instructions.downloadUrl, '_blank');
+      };
+    }
+    
+    if (checkBtn) {
+      checkBtn.onclick = function() {
+        overlay.remove();
+        updateSetupProgress(60, 'Checking for Ollama installation...');
+        setTimeout(function() {
+          checkOllamaInstallation(function(isInstalled) {
+            if (isInstalled) {
+              updateSetupProgress(80, 'Ollama found! Checking models...');
+              setTimeout(checkAndSetupModels, 1000);
+            } else {
+              updateSetupProgress(50, 'Ollama not found. Please complete installation first.');
+              setTimeout(function() {
+                resetAutoSetup();
+              }, 3000);
+            }
+          });
+        }, 1000);
+      };
+    }
+    
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        overlay.remove();
+        resetAutoSetup();
+      };
+    }
+    
+    overlay.onclick = function(e) {
+      if (e.target === overlay) {
+        overlay.remove();
+        resetAutoSetup();
+      }
+    };
+  }, 100);
+  
+  return overlay;
+}
+
+// Show model installation instructions
+function showModelInstallInstructions() {
+  updateSetupProgress(90, 'Opening model installation guide...');
+  
+  var modal = document.createElement('div');
+  modal.style.cssText = 
+    'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); ' +
+    'background:white; padding:24px; border-radius:12px; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25); ' +
+    'z-index:30000; max-width:400px; width:90%;';
+  
+  modal.innerHTML = `
+    <h3 style="margin:0 0 16px 0; color:#111827; font-size:18px; font-weight:700;">Install AI Model</h3>
+    <p style="margin:0 0 16px 0; color:#374151; font-size:14px;">Run this command in your terminal:</p>
+    <code style="display:block; background:#f8fafc; padding:12px; border-radius:8px; font-family:monospace; font-size:13px; border-left:4px solid #3b82f6;">ollama pull llama3.2</code>
+    <div style="display:flex; gap:12px; margin-top:20px;">
+      <button id="model-done" style="flex:1; padding:12px; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Done</button>
+      <button id="model-close" style="flex:1; padding:12px; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Cancel</button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  setTimeout(function() {
+    var doneBtn = modal.querySelector('#model-done');
+    var closeBtn = modal.querySelector('#model-close');
+    
+    if (doneBtn) {
+      doneBtn.onclick = function() {
+        modal.remove();
+        updateSetupProgress(95, 'Verifying model installation...');
+        setTimeout(function() {
+          checkAndSetupModels();
+        }, 1000);
+      };
+    }
+    
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        modal.remove();
+        resetAutoSetup();
+      };
+    }
+  }, 100);
+}
+
+// Show Ollama start instructions
+function showOllamaStartInstructions() {
+  var modal = document.createElement('div');
+  modal.style.cssText = 
+    'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); ' +
+    'background:white; padding:24px; border-radius:12px; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25); ' +
+    'z-index:30000; max-width:400px; width:90%;';
+  
+  modal.innerHTML = `
+    <h3 style="margin:0 0 16px 0; color:#111827; font-size:18px; font-weight:700;">Start Ollama Server</h3>
+    <p style="margin:0 0 16px 0; color:#374151; font-size:14px;">Run this command in your terminal:</p>
+    <code style="display:block; background:#f8fafc; padding:12px; border-radius:8px; font-family:monospace; font-size:13px; border-left:4px solid #3b82f6;">ollama serve</code>
+    <p style="margin:12px 0 0 0; color:#6b7280; font-size:12px;">Keep this terminal window open while using the extension.</p>
+    <div style="display:flex; gap:12px; margin-top:20px;">
+      <button id="server-done" style="flex:1; padding:12px; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Server Started</button>
+      <button id="server-close" style="flex:1; padding:12px; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Cancel</button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  setTimeout(function() {
+    var doneBtn = modal.querySelector('#server-done');
+    var closeBtn = modal.querySelector('#server-close');
+    
+    if (doneBtn) {
+      doneBtn.onclick = function() {
+        modal.remove();
+        updateSetupProgress(80, 'Checking server connection...');
+        setTimeout(function() {
+          checkAndSetupModels();
+        }, 1000);
+      };
+    }
+    
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        modal.remove();
+        resetAutoSetup();
+      };
+    }
+  }, 100);
+}
+
+// Complete auto setup
+function completeAutoSetup(success) {
+  var setupBtn = document.getElementById('auto-setup-ollama');
+  var progressDiv = document.getElementById('setup-progress');
+  
+  if (success) {
+    if (setupBtn) {
+      setupBtn.textContent = '✅ Setup Complete';
+      setupBtn.style.background = '#10b981';
+    }
+    
+    // Auto-populate Ollama configuration
+    var ollamaUrlInput = document.getElementById('ollama-url-input');
+    var ollamaModelSelect = document.getElementById('ollama-model-select');
+    
+    if (ollamaUrlInput) ollamaUrlInput.value = 'http://localhost:11434';
+    if (ollamaModelSelect) ollamaModelSelect.value = 'llama3.2';
+    
+    setTimeout(function() {
+      if (progressDiv) progressDiv.style.display = 'none';
+      resetAutoSetup();
+    }, 3000);
+  } else {
+    resetAutoSetup();
+  }
+}
+
+// Reset auto setup button
+function resetAutoSetup() {
+  var setupBtn = document.getElementById('auto-setup-ollama');
+  var progressDiv = document.getElementById('setup-progress');
+  
+  if (setupBtn) {
+    setupBtn.disabled = false;
+    setupBtn.textContent = '🚀 Auto-Setup Ollama';
+    setupBtn.style.background = '#3b82f6';
+  }
+  
+  if (progressDiv) {
+    progressDiv.style.display = 'none';
+  }
 }
 
 // Use note function

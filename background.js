@@ -1,8 +1,11 @@
 // LinkedIn AI Note Helper – background.js (updated)
 
-const apiURL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const API_KEY_STORAGE_KEY = 'linkedinAI_openaiApiKey';
 const SAVED_MESSAGES_KEY = 'linkedinAI_savedMessages';
+const PROVIDER_STORAGE_KEY = 'linkedinAI_provider';
+const OLLAMA_URL_STORAGE_KEY = 'linkedinAI_ollamaUrl';
+const OLLAMA_MODEL_STORAGE_KEY = 'linkedinAI_ollamaModel';
 
 // Helper function to generate secure IDs
 function generateSecureId() {
@@ -12,27 +15,45 @@ function generateSecureId() {
   return `${timestamp}-${random}-${entropy}`;
 }
 
-async function getOpenAIChatCompletion(prompt) {
-  // Get API key from Chrome storage
-  const result = await chrome.storage.local.get([API_KEY_STORAGE_KEY]);
-  const OPENAI_API_KEY = result[API_KEY_STORAGE_KEY];
+async function getAIChatCompletion(prompt) {
+  // Get provider and configuration from Chrome storage
+  const result = await chrome.storage.local.get([
+    PROVIDER_STORAGE_KEY, 
+    API_KEY_STORAGE_KEY, 
+    OLLAMA_URL_STORAGE_KEY, 
+    OLLAMA_MODEL_STORAGE_KEY
+  ]);
+  
+  const provider = result[PROVIDER_STORAGE_KEY] || 'openai';
+  
+  if (provider === 'ollama') {
+    return await getOllamaChatCompletion(prompt, result);
+  } else {
+    return await getOpenAIChatCompletion(prompt, result);
+  }
+}
+
+async function getOpenAIChatCompletion(prompt, config) {
+  const OPENAI_API_KEY = config[API_KEY_STORAGE_KEY];
   
   if (!OPENAI_API_KEY || OPENAI_API_KEY.trim() === '') {
-    return { error: 'API key not configured. Please set your OpenAI API key in the extension popup.' };
+    return { error: 'OpenAI API key not configured. Please set your OpenAI API key in the extension popup.' };
   }
   
   // Basic API key format validation
   if (!OPENAI_API_KEY.startsWith('sk-') || OPENAI_API_KEY.length < 20) {
-    return { error: 'Invalid API key format. Please check your OpenAI API key.' };
+    return { error: 'Invalid OpenAI API key format. Please check your OpenAI API key.' };
   }
+  
   const body = {
     model: 'gpt-3.5-turbo',
     messages: [{ role: 'user', content: prompt }],
     max_tokens: 500,
     temperature: 0.7
   };
+  
   try {
-    const res = await fetch(apiURL, {
+    const res = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -48,13 +69,103 @@ async function getOpenAIChatCompletion(prompt) {
   }
 }
 
+// Ollama client implementation based on ollama-js library
+class OllamaClient {
+  constructor(host = 'http://localhost:11434') {
+    this.host = host.replace(/\/$/, ''); // Remove trailing slash
+  }
+
+  async generate(request) {
+    const url = `${this.host}/api/generate`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Model '${request.model}' not found. Please pull the model first: ollama pull ${request.model}`);
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  async chat(request) {
+    const url = `${this.host}/api/chat`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Model '${request.model}' not found. Please pull the model first: ollama pull ${request.model}`);
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  async list() {
+    const url = `${this.host}/api/tags`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+}
+
+async function getOllamaChatCompletion(prompt, config) {
+  const ollamaUrl = config[OLLAMA_URL_STORAGE_KEY] || 'http://localhost:11434';
+  const ollamaModel = config[OLLAMA_MODEL_STORAGE_KEY] || 'llama3.2';
+  
+  try {
+    const ollama = new OllamaClient(ollamaUrl);
+    
+    // Use chat API for better conversation handling
+    const response = await ollama.chat({
+      model: ollamaModel,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      stream: false,
+      options: {
+        temperature: 0.7,
+        num_predict: 500
+      }
+    });
+    
+    return { suggestion: response.message?.content?.trim() || response.response?.trim() };
+  } catch (err) {
+    if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
+      return { error: 'Cannot connect to Ollama. Please ensure Ollama is running on ' + ollamaUrl };
+    }
+    return { error: err.message };
+  }
+}
+
 chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
   try {
     if (req.action === 'getAISuggestion') {
-      getOpenAIChatCompletion(req.prompt)
+      getAIChatCompletion(req.prompt)
         .then(sendResponse)
         .catch(error => {
-          console.error('Error in getOpenAIChatCompletion:', error);
+          console.error('Error in getAIChatCompletion:', error);
           sendResponse({ error: error.message || 'Unknown error occurred' });
         });
       return true;
@@ -93,6 +204,86 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         .catch(error => {
           console.error('Error getting API key:', error);
           sendResponse({ error: error.message });
+        });
+      return true;
+    }
+
+    if (req.action === 'saveProvider') {
+      chrome.storage.local.set({ [PROVIDER_STORAGE_KEY]: req.provider })
+        .then(() => {
+          console.log('Provider saved successfully:', req.provider);
+          sendResponse({ success: true });
+        })
+        .catch(error => {
+          console.error('Error saving provider:', error);
+          sendResponse({ error: error.message });
+        });
+      return true;
+    }
+
+    if (req.action === 'getProvider') {
+      chrome.storage.local.get([PROVIDER_STORAGE_KEY])
+        .then(result => {
+          sendResponse({ provider: result[PROVIDER_STORAGE_KEY] || 'openai' });
+        })
+        .catch(error => {
+          console.error('Error getting provider:', error);
+          sendResponse({ error: error.message });
+        });
+      return true;
+    }
+
+    if (req.action === 'saveOllamaConfig') {
+      const config = {};
+      if (req.url) config[OLLAMA_URL_STORAGE_KEY] = req.url;
+      if (req.model) config[OLLAMA_MODEL_STORAGE_KEY] = req.model;
+      
+      chrome.storage.local.set(config)
+        .then(() => {
+          console.log('Ollama config saved successfully');
+          sendResponse({ success: true });
+        })
+        .catch(error => {
+          console.error('Error saving Ollama config:', error);
+          sendResponse({ error: error.message });
+        });
+      return true;
+    }
+
+    if (req.action === 'getOllamaConfig') {
+      chrome.storage.local.get([OLLAMA_URL_STORAGE_KEY, OLLAMA_MODEL_STORAGE_KEY])
+        .then(result => {
+          sendResponse({ 
+            url: result[OLLAMA_URL_STORAGE_KEY] || 'http://localhost:11434',
+            model: result[OLLAMA_MODEL_STORAGE_KEY] || 'llama3.2'
+          });
+        })
+        .catch(error => {
+          console.error('Error getting Ollama config:', error);
+          sendResponse({ error: error.message });
+        });
+      return true;
+    }
+
+    if (req.action === 'testOllamaConnection') {
+      const ollamaUrl = req.url || 'http://localhost:11434';
+      const ollama = new OllamaClient(ollamaUrl);
+      
+      ollama.list()
+        .then(result => {
+          sendResponse({ 
+            success: true, 
+            models: result.models || [],
+            message: 'Connected successfully'
+          });
+        })
+        .catch(error => {
+          console.error('Error testing Ollama connection:', error);
+          sendResponse({ 
+            success: false, 
+            error: error.message,
+            message: 'Failed to connect to Ollama'
+          });
         });
       return true;
     }
@@ -286,4 +477,4 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
   }
 });
 
-console.log('LinkedIn AI Note Helper background.js v0.3.0 loaded');
+console.log('LinkedIn AI Note Helper background.js v0.7.0 loaded - Auto-Setup Ollama with guided installation');
