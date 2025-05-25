@@ -1846,8 +1846,8 @@ function generateAIMessage(messageType = 'connection') {
   // Create prompt based on whether there's existing text
   var prompt;
   if (existingText && existingText.length > 0) {
-    prompt = createImprovementPrompt(existingText);
-    debugLog("Using improvement prompt for existing text:", existingText.substring(0, 50) + "...");
+    prompt = createConnectionRequestPrompt(existingText);
+    debugLog("Using connection request prompt with user instructions:", existingText.substring(0, 50) + "...");
   } else {
     prompt = createPersonaPrompt(persona);
     debugLog("Using generic prompt for new message generation");
@@ -1908,8 +1908,8 @@ function generateAIMessage(messageType = 'connection') {
             textarea.value = firstSuggestion;
             textarea.focus();
             
-            // Show success message based on whether we improved existing text or generated new
-            var actionLabel = existingText && existingText.length > 0 ? 'improved' : 'generated';
+            // Show success message based on whether we used instructions or generated new
+            var actionLabel = existingText && existingText.length > 0 ? 'created from your instructions' : 'generated';
             showGenerateSuccess(`✅ LinkedIn message ${actionLabel}!`);
           }
         } else {
@@ -2285,21 +2285,19 @@ window.debugCurrentModals = debugCurrentModals;
 
 
 
-// Create improvement prompt for existing text
-function createImprovementPrompt(existingText) {
-  var basePrompt = `Improve and enhance this LinkedIn connection request message. Make it more professional, engaging, and compelling while keeping the core intent. The improved message should be 200-250 characters max.
+// Create connection request prompt based on user instructions
+function createConnectionRequestPrompt(userInstructions) {
+  var basePrompt = `Write a professional LinkedIn connection request message based on these instructions: "${userInstructions}"
 
-Original message:
-"${existingText}"
-
-Please provide an improved version that:
-- Maintains the original intent and key points
-- Sounds more professional and polished
-- Is more likely to get a positive response
+Create a LinkedIn connection message that:
+- Incorporates the user's specific instructions and requirements
+- Sounds professional, engaging, and compelling
+- Is likely to get a positive response
 - Follows LinkedIn connection etiquette
+- Is 200-250 characters max
 - Is concise but impactful
 
-Return only the improved message, no explanations.`;
+Return only the connection request message, no explanations.`;
   
   return basePrompt;
 }
