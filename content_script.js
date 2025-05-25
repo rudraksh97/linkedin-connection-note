@@ -1,7 +1,7 @@
 // LinkedIn AI Note Helper - Bulletproof Version v0.3.1
 
 // Debug configuration - set to true for debugging history issues
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 
 function debugLog(...args) {
   if (DEBUG_MODE) {
@@ -675,10 +675,9 @@ function setupUnifiedHandlers() {
     console.error('Error setting up close button:', error);
   }
   
-  // Set up AI generation buttons
+  // Set up AI generation button
   try {
     var generateBtn = document.getElementById('generate-ai-btn');
-    var referralBtn = document.getElementById('generate-referral-btn');
     
     if (generateBtn) {
       generateBtn.onclick = function() {
@@ -697,26 +696,8 @@ function setupUnifiedHandlers() {
         this.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
       };
     }
-    
-    if (referralBtn) {
-      referralBtn.onclick = function() {
-        generateAIMessage('referral');
-      };
-      
-      // Add enhanced hover effects to referral button
-      referralBtn.onmouseover = function() {
-        this.style.background = 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)';
-        this.style.transform = 'translateY(-2px)';
-        this.style.boxShadow = '0 8px 25px -8px rgba(245, 158, 11, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-      };
-      referralBtn.onmouseout = function() {
-        this.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-        this.style.transform = 'translateY(0)';
-        this.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-      };
-    }
   } catch (error) {
-    console.error('Error setting up generate buttons:', error);
+    console.error('Error setting up generate button:', error);
   }
   
   // Set up message creation handlers
@@ -1263,7 +1244,6 @@ function generateAIMessage(messageType = 'connection') {
   debugLog("Generating AI message with type:", messageType);
   
   var btn = document.getElementById('generate-ai-btn');
-  var referralBtn = document.getElementById('generate-referral-btn');
   var textarea = document.getElementById('custom-message-input');
   
   if (!textarea) {
@@ -1271,11 +1251,10 @@ function generateAIMessage(messageType = 'connection') {
     return;
   }
   
-  // Show loading state on the appropriate button
-  var activeBtn = messageType === 'referral' ? referralBtn : btn;
-  if (activeBtn) {
-    activeBtn.disabled = true;
-    activeBtn.textContent = messageType === 'referral' ? 'Generating...' : 'Generating...';
+  // Show loading state on the button
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
   }
   
   // Check if there's existing text in the textarea
@@ -1290,10 +1269,10 @@ function generateAIMessage(messageType = 'connection') {
   // Create prompt based on whether there's existing text
   var prompt;
   if (existingText && existingText.length > 0) {
-    prompt = createImprovementPrompt(existingText, messageType);
+    prompt = createImprovementPrompt(existingText);
     debugLog("Using improvement prompt for existing text:", existingText.substring(0, 50) + "...");
   } else {
-    prompt = createPersonaPrompt(persona, messageType);
+    prompt = createPersonaPrompt(persona);
     debugLog("Using generic prompt for new message generation");
   }
   
@@ -1309,7 +1288,7 @@ function generateAIMessage(messageType = 'connection') {
   
   if (!chromeAvailable) {
     btn.disabled = false;
-    btn.textContent = '🤖 Generate AI';
+    btn.textContent = '🤖 Write with AI';
     showGenerateError('Extension context lost. Please reload the page.');
     return;
   }
@@ -1320,9 +1299,9 @@ function generateAIMessage(messageType = 'connection') {
       { action: 'getAISuggestion', prompt: prompt, persona: persona, messageType: messageType },
       function(response) {
         // Reset button state
-        if (activeBtn) {
-          activeBtn.disabled = false;
-          activeBtn.textContent = messageType === 'referral' ? '🤝 Ask Referral' : '🤖 Generate AI';
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🤖 Write with AI';
         }
         
         if (chrome.runtime.lastError) {
@@ -1354,8 +1333,7 @@ function generateAIMessage(messageType = 'connection') {
             
             // Show success message based on whether we improved existing text or generated new
             var actionLabel = existingText && existingText.length > 0 ? 'improved' : 'generated';
-            var messageTypeLabel = messageType === 'referral' ? 'referral request' : 'connection message';
-            showGenerateSuccess(`✅ LinkedIn ${messageTypeLabel} ${actionLabel}!`);
+            showGenerateSuccess(`✅ LinkedIn message ${actionLabel}!`);
           }
         } else {
           showApiKeyPrompt();
@@ -1363,9 +1341,9 @@ function generateAIMessage(messageType = 'connection') {
       }
     );
   } catch (sendError) {
-    if (activeBtn) {
-      activeBtn.disabled = false;
-      activeBtn.textContent = messageType === 'referral' ? '🤝 Ask Referral' : '🤖 Generate AI';
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🤖 Write with AI';
     }
     showGenerateError('Failed to communicate with extension background. Please reload the page.');
     console.error('Chrome runtime sendMessage error:', sendError);
@@ -1731,25 +1709,8 @@ window.debugCurrentModals = debugCurrentModals;
 
 
 // Create improvement prompt for existing text
-function createImprovementPrompt(existingText, messageType = 'connection') {
-  var basePrompt = '';
-  
-  if (messageType === 'referral') {
-    basePrompt = `Improve and enhance this LinkedIn referral request message. Make it more professional, engaging, and compelling while keeping the core intent. The improved message should be 250-300 characters max.
-
-Original message:
-"${existingText}"
-
-Please provide an improved version that:
-- Maintains the original intent and key points
-- Sounds more professional and polished
-- Is more likely to get a positive response
-- Follows LinkedIn etiquette
-- Is concise but impactful
-
-Return only the improved message, no explanations.`;
-  } else {
-    basePrompt = `Improve and enhance this LinkedIn connection request message. Make it more professional, engaging, and compelling while keeping the core intent. The improved message should be 200-250 characters max.
+function createImprovementPrompt(existingText) {
+  var basePrompt = `Improve and enhance this LinkedIn connection request message. Make it more professional, engaging, and compelling while keeping the core intent. The improved message should be 200-250 characters max.
 
 Original message:
 "${existingText}"
@@ -1762,17 +1723,12 @@ Please provide an improved version that:
 - Is concise but impactful
 
 Return only the improved message, no explanations.`;
-  }
   
   return basePrompt;
 }
 
 // Generate persona-specific AI prompts (simplified for ToS compliance)
-function createPersonaPrompt(persona, messageType = 'connection') {
-  if (messageType === 'referral') {
-    return createReferralPrompt(persona);
-  }
-  
+function createPersonaPrompt(persona) {
   switch (persona) {
     case 'recruiter':
       return `Write a professional LinkedIn connection message to a recruiter. Focus on:
@@ -1828,55 +1784,5 @@ Make it personalized and authentic.`;
   }
 }
 
-// Generate referral request prompts (simplified for ToS compliance)
-function createReferralPrompt(persona) {
-  switch (persona) {
-    case 'recruiter':
-      return `Write a LinkedIn message asking a recruiter for a referral. Focus on:
-- Brief introduction of your background
-- Specific role or type of position you're interested in
-- Why you're interested in their company
-- Polite request for referral or introduction
-- Offer to share resume or portfolio
-- Professional and courteous tone
-- 250-300 characters max
 
-Make it clear you're a qualified candidate seeking a referral opportunity.`;
-      
-    case 'engineering_manager':
-      return `Write a LinkedIn message asking an Engineering Manager for a referral. Focus on:
-- Your technical background and relevant experience
-- Specific interest in their team or engineering organization
-- Technologies or projects that align with their work
-- Respectful request for referral consideration
-- Offer to discuss your experience further
-- Professional tone
-- 250-300 characters max
-
-Show you're a serious engineer interested in their team specifically.`;
-      
-    case 'founder':
-      return `Write a LinkedIn message asking a founder for a referral. Focus on:
-- Your professional background and what you bring to the table
-- Genuine interest in their company's mission
-- How you could contribute to their organization
-- Respectful request for referral consideration
-- Admiration for what they've built
-- Confident but humble tone
-- 250-300 characters max
-
-Show you understand their business and could be a valuable addition.`;
-      
-    default:
-      return `Write a LinkedIn message asking for a referral. Focus on:
-- Brief professional introduction
-- Interest in their company or industry
-- Polite request for referral consideration
-- How you might add value
-- Professional and respectful tone
-- 250-300 characters max
-
-Make it personalized and show genuine interest.`;
-  }
-}
 

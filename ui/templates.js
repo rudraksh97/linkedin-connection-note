@@ -45,7 +45,7 @@ const UITemplates = {
           <textarea 
             id="custom-message-input" 
             name="custom-message-input"
-            placeholder="Write your connection message here..."
+            placeholder="Write your message here or Give prompt"
             autocomplete="off"
             spellcheck="true"
             style="
@@ -81,13 +81,9 @@ const UITemplates = {
         
         <!-- AI Generation Options -->
         <div style="margin-bottom:16px;">
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <button id="generate-ai-btn" style="padding:14px 16px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); display:flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;">
-              🤖 Generate Connection
-            </button>
-            
-            <button id="generate-referral-btn" style="padding:14px 16px; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); display:flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;">
-              🤝 Ask Referral
+          <div style="margin-bottom:12px;">
+            <button id="generate-ai-btn" style="width:100%; padding:14px 16px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); display:flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;">
+              🤖 Write with AI
             </button>
           </div>
         </div>
