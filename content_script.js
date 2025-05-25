@@ -81,6 +81,9 @@ function init() {
     // Set up observer to watch for modals
     setupObserver();
     
+    // Initialize response tracking
+    initResponseTracking();
+    
     // Check if modal already exists
     checkForModal();
   } catch (error) {
@@ -688,12 +691,14 @@ function setupUnifiedHandlers() {
     console.error('Error setting up close button:', error);
   }
   
-  // Set up AI generation button
+  // Set up AI generation buttons
   try {
     var generateBtn = document.getElementById('generate-ai-btn');
+    var referralBtn = document.getElementById('generate-referral-btn');
+    
     if (generateBtn) {
       generateBtn.onclick = function() {
-        generateAIMessage();
+        generateAIMessage('connection');
       };
       
       // Add enhanced hover effects to generate button
@@ -708,8 +713,26 @@ function setupUnifiedHandlers() {
         this.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
       };
     }
+    
+    if (referralBtn) {
+      referralBtn.onclick = function() {
+        generateAIMessage('referral');
+      };
+      
+      // Add enhanced hover effects to referral button
+      referralBtn.onmouseover = function() {
+        this.style.background = 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)';
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 8px 25px -8px rgba(245, 158, 11, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+      };
+      referralBtn.onmouseout = function() {
+        this.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+      };
+    }
   } catch (error) {
-    console.error('Error setting up generate button:', error);
+    console.error('Error setting up generate buttons:', error);
   }
   
   // Set up message creation handlers
@@ -758,6 +781,64 @@ function setupUnifiedHandlers() {
       // If context is invalidated, we can still continue without the saved data
     }
   }, 200);
+  
+  // Display persona detection
+  setTimeout(function() {
+    try {
+      displayPersonaDetection();
+    } catch (error) {
+      console.error('Error displaying persona detection:', error);
+    }
+  }, 500);
+}
+
+// Display persona detection in UI
+function displayPersonaDetection() {
+  var personaContainer = document.getElementById('persona-detection');
+  var personaLabel = document.getElementById('persona-label');
+  var personaIcon = document.getElementById('persona-icon');
+  
+  if (!personaContainer || !personaLabel || !personaIcon) {
+    debugLog("Persona UI elements not found");
+    return;
+  }
+  
+  // Extract person information and detect persona
+  var personInfo = extractPersonInfo();
+  var persona = detectPersonaFromProfile(personInfo);
+  
+  debugLog("Displaying persona:", persona, "for person:", personInfo.name);
+  
+  // Set persona display
+  var personaDisplay = getPersonaDisplayInfo(persona);
+  personaLabel.textContent = personaDisplay.label;
+  personaIcon.textContent = personaDisplay.icon;
+  
+  // Show the persona container
+  personaContainer.style.display = 'block';
+  
+  // Add a subtle animation
+  personaContainer.style.opacity = '0';
+  personaContainer.style.transform = 'translateY(-10px)';
+  setTimeout(function() {
+    personaContainer.style.transition = 'all 0.3s ease';
+    personaContainer.style.opacity = '1';
+    personaContainer.style.transform = 'translateY(0)';
+  }, 100);
+}
+
+// Get persona display information
+function getPersonaDisplayInfo(persona) {
+  switch (persona) {
+    case 'recruiter':
+      return { label: 'Recruiter / Talent Acquisition', icon: '🎯' };
+    case 'engineering_manager':
+      return { label: 'Engineering Manager / Tech Lead', icon: '⚙️' };
+    case 'founder':
+      return { label: 'Founder / CEO / Entrepreneur', icon: '🚀' };
+    default:
+      return { label: 'Professional', icon: '👤' };
+  }
 }
 
 // Switch between main tabs
@@ -1459,50 +1540,36 @@ function hideUI() {
 }
 
 // Generate AI message directly into textarea
-function generateAIMessage() {
-  debugLog("Generating AI message...");
+function generateAIMessage(messageType = 'connection') {
+  debugLog("Generating AI message with type:", messageType);
   
   var btn = document.getElementById('generate-ai-btn');
+  var referralBtn = document.getElementById('generate-referral-btn');
   var textarea = document.getElementById('custom-message-input');
   
-  if (!btn || !textarea) {
-    console.error("UI elements not found");
+  if (!textarea) {
+    console.error("Textarea not found");
     return;
   }
   
-  // Show loading state
-  btn.disabled = true;
-  btn.textContent = 'Generating...';
+  // Show loading state on the appropriate button
+  var activeBtn = messageType === 'referral' ? referralBtn : btn;
+  if (activeBtn) {
+    activeBtn.disabled = true;
+    activeBtn.textContent = messageType === 'referral' ? 'Generating...' : 'Generating...';
+  }
   
   // Extract person information for personalized message
   var personInfo = extractPersonInfo();
   
-  // Create simple prompt for a single message
-  var prompt = 'Write a professional LinkedIn connection request message that is personalized and under 250 characters.';
+  // Detect persona from profile
+  var persona = detectPersonaFromProfile(personInfo);
+  debugLog("Detected persona:", persona, "for person:", personInfo.name);
   
-  // Add person context if available
-  var contextParts = [];
+  // Create persona-specific prompt
+  var prompt = createPersonaPrompt(persona, personInfo, messageType);
   
-  if (personInfo.name) {
-    contextParts.push('Person name: ' + personInfo.name);
-  }
-  
-  if (personInfo.title) {
-    contextParts.push('Job title: ' + personInfo.title);
-  }
-  
-  if (personInfo.company) {
-    contextParts.push('Company: ' + personInfo.company);
-  }
-  
-  if (personInfo.location) {
-    contextParts.push('Location: ' + personInfo.location);
-  }
-  
-  if (contextParts.length > 0) {
-    var contextString = '\n\nContext about the person:\n' + contextParts.join('\n');
-    prompt = prompt + contextString + '\n\nUse this information to create a personalized, relevant connection message. Make it feel genuine and tailored to this person.';
-  }
+  debugLog("Generated prompt:", prompt);
   
   // Check if chrome runtime is available and valid
   var chromeAvailable = false;
@@ -1522,10 +1589,13 @@ function generateAIMessage() {
   // Send message to background
   try {
     chrome.runtime.sendMessage(
-      { action: 'getAISuggestion', prompt: prompt },
+      { action: 'getAISuggestion', prompt: prompt, persona: persona, messageType: messageType },
       function(response) {
-        btn.disabled = false;
-        btn.textContent = '🤖 Generate AI';
+        // Reset button state
+        if (activeBtn) {
+          activeBtn.disabled = false;
+          activeBtn.textContent = messageType === 'referral' ? '🤝 Ask Referral' : '🤖 Generate AI';
+        }
         
         if (chrome.runtime.lastError) {
           showGenerateError('Extension error: ' + chrome.runtime.lastError.message);
@@ -1553,7 +1623,14 @@ function generateAIMessage() {
           if (firstSuggestion) {
             textarea.value = firstSuggestion;
             textarea.focus();
-            showGenerateSuccess();
+            
+            // Show persona-specific success message
+            var personaLabel = getPersonaLabel(persona);
+            var messageTypeLabel = messageType === 'referral' ? 'referral request' : 'connection message';
+            showGenerateSuccess(`✅ ${personaLabel} ${messageTypeLabel} generated!`);
+            
+            // Track the generated message with persona info
+            addToHistory(firstSuggestion, `ai_${persona}_${messageType}`);
           }
         } else {
           showApiKeyPrompt();
@@ -1561,8 +1638,10 @@ function generateAIMessage() {
       }
     );
   } catch (sendError) {
-    btn.disabled = false;
-    btn.textContent = '🤖 Generate AI';
+    if (activeBtn) {
+      activeBtn.disabled = false;
+      activeBtn.textContent = messageType === 'referral' ? '🤝 Ask Referral' : '🤖 Generate AI';
+    }
     showGenerateError('Failed to communicate with extension background. Please reload the page.');
     console.error('Chrome runtime sendMessage error:', sendError);
   }
@@ -1628,8 +1707,22 @@ function showGenerateError(message) {
 }
 
 // Show success message for generation
-function showGenerateSuccess() {
-  showLeftPanelFeedback('✅ AI message generated!', 'success');
+function showGenerateSuccess(message = '✅ AI message generated!') {
+  showLeftPanelFeedback(message, 'success');
+}
+
+// Get user-friendly persona label
+function getPersonaLabel(persona) {
+  switch (persona) {
+    case 'recruiter':
+      return 'Recruiter-focused';
+    case 'engineering_manager':
+      return 'Engineering Manager';
+    case 'founder':
+      return 'Founder-focused';
+    default:
+      return 'Generic';
+  }
 }
 
 // Show API key prompt
@@ -2456,4 +2549,339 @@ function debugCurrentModals() {
 window.testHistoryCapture = testHistoryCapture;
 window.testTextareaFocus = testTextareaFocus;
 window.debugCurrentModals = debugCurrentModals;
+
+// Add response tracking functionality
+function initResponseTracking() {
+  // Set up conversation monitoring
+  setupConversationMonitoring();
+  
+  // Check for responses to previously sent messages
+  checkForResponses();
+}
+
+function setupConversationMonitoring() {
+  // Monitor for new messages in conversations
+  const conversationObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.addedNodes.length > 0) {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === 1 && node.querySelector) {
+            // Check if this is a new message thread or conversation
+            const messageElements = node.querySelectorAll('[data-test-id*="message"]') || 
+                                   node.querySelectorAll('.msg-s-message-list-item') ||
+                                   node.querySelectorAll('.message-item');
+            
+            if (messageElements.length > 0) {
+              debugLog("New conversation activity detected, checking for responses...");
+              setTimeout(checkForResponses, 2000);
+            }
+          }
+        });
+      }
+    });
+  });
+
+  // Start observing messaging areas
+  const messagingContainer = document.querySelector('[data-test-id="messaging-container"]') ||
+                            document.querySelector('.messaging-container') ||
+                            document.querySelector('.msg-overlay-bubble-header') ||
+                            document.body;
+  
+  if (messagingContainer) {
+    conversationObserver.observe(messagingContainer, { 
+      childList: true, 
+      subtree: true 
+    });
+    debugLog("Response tracking initialized - monitoring conversations");
+  }
+}
+
+function checkForResponses() {
+  // Get message history from storage
+  chrome.storage.local.get(['messageHistory'], function(result) {
+    const messageHistory = result.messageHistory || [];
+    const unresponded = messageHistory.filter(msg => !msg.hasResponse);
+    
+    if (unresponded.length === 0) return;
+    
+    debugLog(`Checking for responses to ${unresponded.length} messages...`);
+    
+    // Check each unresponded message
+    unresponded.forEach(function(messageData) {
+      checkMessageForResponse(messageData);
+    });
+  });
+}
+
+function checkMessageForResponse(messageData) {
+  // Try to find conversation with the person
+  const personName = messageData.personInfo?.name;
+  if (!personName) return;
+  
+  // Look for conversation elements
+  const conversationElements = document.querySelectorAll('[data-test-id*="conversation"]') ||
+                              document.querySelectorAll('.msg-conversation-listitem') ||
+                              document.querySelectorAll('.conversation-item');
+  
+  conversationElements.forEach(function(element) {
+    const elementText = element.textContent || '';
+    if (elementText.toLowerCase().includes(personName.toLowerCase())) {
+      // Found potential conversation, check for response indicators
+      const hasNewMessage = element.querySelector('.msg-conversation-card__unread-count') ||
+                           element.querySelector('[data-test-id*="unread"]') ||
+                           element.classList.contains('unread');
+      
+      const lastActivity = element.querySelector('.msg-conversation-card__time-stamp') ||
+                          element.querySelector('.time-stamp') ||
+                          element.querySelector('[data-test-id*="timestamp"]');
+      
+      if (hasNewMessage || checkRecentActivity(lastActivity, messageData.timestamp)) {
+        debugLog(`Potential response detected for message to ${personName}`);
+        markMessageAsResponded(messageData.id);
+        updateResponseAnalytics();
+      }
+    }
+  });
+}
+
+function checkRecentActivity(timeElement, originalTimestamp) {
+  if (!timeElement || !originalTimestamp) return false;
+  
+  const timeText = timeElement.textContent || '';
+  const originalTime = new Date(originalTimestamp);
+  const cutoffTime = new Date(originalTime.getTime() + (24 * 60 * 60 * 1000)); // 24 hours after
+  
+  // Simple heuristic: if activity shows very recent time (minutes, hours) 
+  // and it's after our message was sent
+  if (timeText.includes('min') || timeText.includes('hour') || timeText.includes('now')) {
+    return new Date() > originalTime;
+  }
+  
+  return false;
+}
+
+function markMessageAsResponded(messageId) {
+  chrome.storage.local.get(['messageHistory'], function(result) {
+    const messageHistory = result.messageHistory || [];
+    const updatedHistory = messageHistory.map(function(msg) {
+      if (msg.id === messageId) {
+        return { ...msg, hasResponse: true, responseDetectedAt: new Date().toISOString() };
+      }
+      return msg;
+    });
+    
+    chrome.storage.local.set({ messageHistory: updatedHistory }, function() {
+      debugLog(`Message ${messageId} marked as responded`);
+      showSuccessFeedback("Response detected! 🎉");
+    });
+  });
+}
+
+function updateResponseAnalytics() {
+  chrome.storage.local.get(['messageHistory', 'analytics'], function(result) {
+    const messageHistory = result.messageHistory || [];
+    const analytics = result.analytics || {};
+    
+    const totalSent = messageHistory.length;
+    const totalResponded = messageHistory.filter(msg => msg.hasResponse).length;
+    const responseRate = totalSent > 0 ? Math.round((totalResponded / totalSent) * 100) : 0;
+    
+    analytics.responseRate = responseRate;
+    analytics.totalResponses = totalResponded;
+    analytics.lastUpdated = new Date().toISOString();
+    
+    chrome.storage.local.set({ analytics: analytics }, function() {
+      debugLog(`Analytics updated: ${responseRate}% response rate`);
+    });
+  });
+}
+
+// Add persona detection functionality
+function detectPersonaFromProfile(personInfo) {
+  const title = (personInfo.title || '').toLowerCase();
+  const company = (personInfo.company || '').toLowerCase();
+  const about = (personInfo.about || '').toLowerCase();
+  
+  // Combine all text for analysis
+  const profileText = `${title} ${company} ${about}`.toLowerCase();
+  
+  // Recruiter indicators
+  const recruiterKeywords = [
+    'recruiter', 'recruiting', 'talent acquisition', 'talent partner', 'talent specialist',
+    'people operations', 'people partner', 'hr', 'human resources', 'staffing',
+    'head hunter', 'headhunter', 'sourcing', 'talent scout'
+  ];
+  
+  // Engineering Manager indicators
+  const engineeringManagerKeywords = [
+    'engineering manager', 'engineering lead', 'tech lead', 'technical lead',
+    'vp of engineering', 'vp engineering', 'head of engineering', 'engineering director',
+    'director of engineering', 'principal engineer', 'staff engineer', 'team lead',
+    'development manager', 'software manager', 'platform lead'
+  ];
+  
+  // Founder indicators
+  const founderKeywords = [
+    'founder', 'co-founder', 'cofounder', 'ceo', 'chief executive', 'entrepreneur',
+    'startup', 'owner', 'president', 'founding', 'creator', 'established'
+  ];
+  
+  // Check for recruiter
+  for (const keyword of recruiterKeywords) {
+    if (profileText.includes(keyword)) {
+      return 'recruiter';
+    }
+  }
+  
+  // Check for engineering manager
+  for (const keyword of engineeringManagerKeywords) {
+    if (profileText.includes(keyword)) {
+      return 'engineering_manager';
+    }
+  }
+  
+  // Check for founder
+  for (const keyword of founderKeywords) {
+    if (profileText.includes(keyword)) {
+      return 'founder';
+    }
+  }
+  
+  // Default to generic
+  return 'generic';
+}
+
+// Generate persona-specific AI prompts
+function createPersonaPrompt(persona, personInfo, messageType = 'connection') {
+  const contextParts = [];
+  
+  if (personInfo.name) contextParts.push(`Name: ${personInfo.name}`);
+  if (personInfo.title) contextParts.push(`Job title: ${personInfo.title}`);
+  if (personInfo.company) contextParts.push(`Company: ${personInfo.company}`);
+  if (personInfo.location) contextParts.push(`Location: ${personInfo.location}`);
+  
+  const context = contextParts.length > 0 ? `\n\nContext:\n${contextParts.join('\n')}` : '';
+  
+  let basePrompt = '';
+  
+  if (messageType === 'referral') {
+    return createReferralPrompt(persona, personInfo);
+  }
+  
+  switch (persona) {
+    case 'recruiter':
+      basePrompt = `Write a professional LinkedIn connection message to a recruiter. Focus on:
+- Your background and what type of opportunities you're seeking
+- Specific skills and experience that make you valuable
+- Interest in learning about opportunities at their company
+- Professional but personable tone
+- 200-250 characters max
+
+Make it clear you're a serious candidate worth their time.`;
+      break;
+      
+    case 'engineering_manager':
+      basePrompt = `Write a professional LinkedIn connection message to an Engineering Manager. Focus on:
+- Your technical background and engineering experience
+- Interest in their team, projects, or engineering culture
+- Specific technologies or methodologies you share
+- Potential for technical collaboration or mentorship
+- Professional and respectful tone
+- 200-250 characters max
+
+Show genuine interest in their technical leadership and engineering approach.`;
+      break;
+      
+    case 'founder':
+      basePrompt = `Write a professional LinkedIn connection message to a startup founder/CEO. Focus on:
+- Your entrepreneurial spirit or business acumen
+- Interest in their company's mission and vision
+- How you could potentially add value to their organization
+- Admiration for what they've built
+- Confident but respectful tone
+- 200-250 characters max
+
+Show you understand the challenges of building a company and respect their achievements.`;
+      break;
+      
+    default:
+      basePrompt = `Write a professional LinkedIn connection message. Focus on:
+- Finding common ground or shared interests
+- Professional background relevance
+- Genuine interest in connecting
+- Warm and approachable tone
+- 200-250 characters max
+
+Make it personalized and authentic.`;
+  }
+  
+  return basePrompt + context + '\n\nUse this information to create a personalized, relevant message.';
+}
+
+// Generate referral request prompts
+function createReferralPrompt(persona, personInfo) {
+  const contextParts = [];
+  
+  if (personInfo.name) contextParts.push(`Name: ${personInfo.name}`);
+  if (personInfo.title) contextParts.push(`Job title: ${personInfo.title}`);
+  if (personInfo.company) contextParts.push(`Company: ${personInfo.company}`);
+  
+  const context = contextParts.length > 0 ? `\n\nContext:\n${contextParts.join('\n')}` : '';
+  
+  let basePrompt = '';
+  
+  switch (persona) {
+    case 'recruiter':
+      basePrompt = `Write a LinkedIn message asking a recruiter for a referral. Focus on:
+- Brief introduction of your background
+- Specific role or type of position you're interested in
+- Why you're interested in their company
+- Polite request for referral or introduction
+- Offer to share resume or portfolio
+- Professional and courteous tone
+- 250-300 characters max
+
+Make it clear you're a qualified candidate seeking a referral opportunity.`;
+      break;
+      
+    case 'engineering_manager':
+      basePrompt = `Write a LinkedIn message asking an Engineering Manager for a referral. Focus on:
+- Your technical background and relevant experience
+- Specific interest in their team or engineering organization
+- Technologies or projects that align with their work
+- Respectful request for referral consideration
+- Offer to discuss your experience further
+- Professional tone
+- 250-300 characters max
+
+Show you're a serious engineer interested in their team specifically.`;
+      break;
+      
+    case 'founder':
+      basePrompt = `Write a LinkedIn message asking a founder for a referral. Focus on:
+- Your professional background and what you bring to the table
+- Genuine interest in their company's mission
+- How you could contribute to their organization
+- Respectful request for referral consideration
+- Admiration for what they've built
+- Confident but humble tone
+- 250-300 characters max
+
+Show you understand their business and could be a valuable addition.`;
+      break;
+      
+    default:
+      basePrompt = `Write a LinkedIn message asking for a referral. Focus on:
+- Brief professional introduction
+- Interest in their company or industry
+- Polite request for referral consideration
+- How you might add value
+- Professional and respectful tone
+- 250-300 characters max
+
+Make it personalized and show genuine interest.`;
+  }
+  
+  return basePrompt + context + '\n\nUse this information to create a personalized referral request.';
+}
 

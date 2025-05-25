@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persona Detection Test - LinkedIn Invitation Notepad</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .persona-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #fafafa;
+        }
+        .persona-result {
+            font-weight: bold;
+            color: #0077b5;
+            margin-top: 10px;
+        }
+        .test-profile {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>🎭 Persona Detection Testing</h1>
+    
+    <div class="test-section">
+        <h2>🧪 Test Persona Detection Algorithm</h2>
+        <p>This page tests the persona detection logic used in the LinkedIn extension.</p>
+        
+        <button onclick="runAllTests()" style="background: #0077b5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Run All Tests</button>
+        <button onclick="clearResults()" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Clear Results</button>
+        
+        <div id="test-results" style="margin-top: 20px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>👤 Custom Profile Testing</h2>
+        <p>Test persona detection with custom profile information:</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+                <label>Name:</label>
+                <input type="text" id="custom-name" placeholder="John Smith" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div>
+                <label>Job Title:</label>
+                <input type="text" id="custom-title" placeholder="Senior Software Engineer" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div>
+                <label>Company:</label>
+                <input type="text" id="custom-company" placeholder="TechCorp" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div>
+                <label>About/Bio:</label>
+                <input type="text" id="custom-about" placeholder="Passionate about building great products..." style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+        </div>
+        
+        <button onclick="testCustomProfile()" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-top: 10px;">Test Custom Profile</button>
+        
+        <div id="custom-result" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>💬 Message Generation Examples</h2>
+        <p>See how different personas generate different message types:</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <button onclick="generateExampleMessages('recruiter')" style="background: #f59e0b; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">🎯 Recruiter Examples</button>
+            <button onclick="generateExampleMessages('engineering_manager')" style="background: #8b5cf6; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">⚙️ Eng Manager Examples</button>
+            <button onclick="generateExampleMessages('founder')" style="background: #ef4444; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">🚀 Founder Examples</button>
+            <button onclick="generateExampleMessages('generic')" style="background: #6b7280; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">👤 Generic Examples</button>
+        </div>
+        
+        <div id="message-examples" style="margin-top: 15px;"></div>
+    </div>
+
+    <script>
+        // Persona detection algorithm (copied from content script)
+        function detectPersonaFromProfile(personInfo) {
+            const title = (personInfo.title || '').toLowerCase();
+            const company = (personInfo.company || '').toLowerCase();
+            const about = (personInfo.about || '').toLowerCase();
+            
+            const profileText = `${title} ${company} ${about}`.toLowerCase();
+            
+            const recruiterKeywords = [
+                'recruiter', 'recruiting', 'talent acquisition', 'talent partner', 'talent specialist',
+                'people operations', 'people partner', 'hr', 'human resources', 'staffing',
+                'head hunter', 'headhunter', 'sourcing', 'talent scout'
+            ];
+            
+            const engineeringManagerKeywords = [
+                'engineering manager', 'engineering lead', 'tech lead', 'technical lead',
+                'vp of engineering', 'vp engineering', 'head of engineering', 'engineering director',
+                'director of engineering', 'principal engineer', 'staff engineer', 'team lead',
+                'development manager', 'software manager', 'platform lead'
+            ];
+            
+            const founderKeywords = [
+                'founder', 'co-founder', 'cofounder', 'ceo', 'chief executive', 'entrepreneur',
+                'startup', 'owner', 'president', 'founding', 'creator', 'established'
+            ];
+            
+            for (const keyword of recruiterKeywords) {
+                if (profileText.includes(keyword)) {
+                    return 'recruiter';
+                }
+            }
+            
+            for (const keyword of engineeringManagerKeywords) {
+                if (profileText.includes(keyword)) {
+                    return 'engineering_manager';
+                }
+            }
+            
+            for (const keyword of founderKeywords) {
+                if (profileText.includes(keyword)) {
+                    return 'founder';
+                }
+            }
+            
+            return 'generic';
+        }
+
+        function getPersonaLabel(persona) {
+            switch (persona) {
+                case 'recruiter':
+                    return '🎯 Recruiter / Talent Acquisition';
+                case 'engineering_manager':
+                    return '⚙️ Engineering Manager / Tech Lead';
+                case 'founder':
+                    return '🚀 Founder / CEO / Entrepreneur';
+                default:
+                    return '👤 Generic Professional';
+            }
+        }
+
+        // Test cases
+        const testProfiles = [
+            {
+                name: 'Sarah Johnson',
+                title: 'Senior Technical Recruiter',
+                company: 'Google',
+                about: 'Passionate about connecting talented engineers with amazing opportunities',
+                expected: 'recruiter'
+            },
+            {
+                name: 'Mike Chen',
+                title: 'Engineering Manager',
+                company: 'Microsoft',
+                about: 'Leading a team of 12 engineers building cloud infrastructure',
+                expected: 'engineering_manager'
+            },
+            {
+                name: 'Jessica Rodriguez',
+                title: 'Co-Founder & CEO',
+                company: 'StartupCorp',
+                about: 'Building the future of fintech. Entrepreneur passionate about disrupting traditional banking',
+                expected: 'founder'
+            },
+            {
+                name: 'Alex Thompson',
+                title: 'Staff Engineer',
+                company: 'Netflix',
+                about: 'Senior engineer working on distributed systems and scalability',
+                expected: 'engineering_manager'
+            },
+            {
+                name: 'David Park',
+                title: 'VP of Engineering',
+                company: 'Uber',
+                about: 'Scaling engineering teams and building world-class products',
+                expected: 'engineering_manager'
+            },
+            {
+                name: 'Lisa Wang',
+                title: 'Talent Partner',
+                company: 'Facebook',
+                about: 'Specializing in technical recruiting for software engineering roles',
+                expected: 'recruiter'
+            },
+            {
+                name: 'Robert Kim',
+                title: 'Product Manager',
+                company: 'Apple',
+                about: 'Building innovative products that delight customers',
+                expected: 'generic'
+            },
+            {
+                name: 'Emma Davis',
+                title: 'Founder',
+                company: 'TechStartup Inc',
+                about: 'Serial entrepreneur with 3 successful exits. Currently building AI-powered solutions',
+                expected: 'founder'
+            }
+        ];
+
+        function runAllTests() {
+            const resultsDiv = document.getElementById('test-results');
+            let results = '<h3>🧪 Test Results:</h3>';
+            let passCount = 0;
+            let totalCount = testProfiles.length;
+
+            testProfiles.forEach((profile, index) => {
+                const detected = detectPersonaFromProfile(profile);
+                const passed = detected === profile.expected;
+                
+                if (passed) passCount++;
+
+                results += `
+                    <div class="persona-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${profile.name}</strong> - ${profile.title} at ${profile.company}
+                            </div>
+                            <div class="${passed ? 'success' : 'error'}">
+                                ${passed ? '✅ PASS' : '❌ FAIL'}
+                            </div>
+                        </div>
+                        <div style="margin: 8px 0; font-size: 13px; color: #666;">
+                            "${profile.about}"
+                        </div>
+                        <div class="persona-result">
+                            Expected: ${getPersonaLabel(profile.expected)}<br>
+                            Detected: ${getPersonaLabel(detected)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            const successRate = Math.round((passCount / totalCount) * 100);
+            results += `
+                <div style="margin-top: 20px; padding: 15px; background: ${successRate >= 80 ? '#d1fae5' : successRate >= 60 ? '#fef3c7' : '#fee2e2'}; border-radius: 8px;">
+                    <strong>Overall Results: ${passCount}/${totalCount} tests passed (${successRate}%)</strong>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = results;
+        }
+
+        function testCustomProfile() {
+            const customProfile = {
+                name: document.getElementById('custom-name').value,
+                title: document.getElementById('custom-title').value,
+                company: document.getElementById('custom-company').value,
+                about: document.getElementById('custom-about').value
+            };
+
+            const detected = detectPersonaFromProfile(customProfile);
+            
+            document.getElementById('custom-result').innerHTML = `
+                <div class="test-profile">
+                    <h4>Detection Result:</h4>
+                    <div class="persona-result">${getPersonaLabel(detected)}</div>
+                    <div style="margin-top: 10px; font-size: 13px; color: #666;">
+                        This profile would receive ${detected}-specific AI prompts and messaging templates.
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateExampleMessages(persona) {
+            const examples = {
+                recruiter: {
+                    connection: "Hi Sarah, I'm a senior software engineer with 5 years of experience in Python and React. I'd love to connect and learn about opportunities at Google. I'm particularly interested in backend engineering roles.",
+                    referral: "Hi Sarah, I'm interested in software engineering opportunities at Google. I have strong experience in distributed systems and would appreciate any referral consideration. I'd be happy to share my portfolio."
+                },
+                engineering_manager: {
+                    connection: "Hi Mike, I'm impressed by your team's work on cloud infrastructure at Microsoft. As a fellow engineer, I'd love to connect and discuss best practices in scaling engineering teams.",
+                    referral: "Hi Mike, I'm a senior engineer with expertise in distributed systems. I'm very interested in joining your team at Microsoft and would appreciate referral consideration. Happy to discuss my technical experience."
+                },
+                founder: {
+                    connection: "Hi Jessica, I admire what you're building at StartupCorp. Your approach to fintech innovation is inspiring. I'd love to connect and learn from your entrepreneurial journey.",
+                    referral: "Hi Jessica, I'm passionate about fintech and impressed by StartupCorp's mission. I believe I could contribute significantly to your team and would appreciate referral consideration."
+                },
+                generic: {
+                    connection: "Hi Robert, I noticed we share interests in product management and innovation. I'd love to connect and potentially exchange insights about building great products.",
+                    referral: "Hi Robert, I'm interested in product opportunities at Apple and would appreciate any referral consideration. I'm passionate about creating user-centric products."
+                }
+            };
+
+            const personaLabels = {
+                recruiter: '🎯 Recruiter',
+                engineering_manager: '⚙️ Engineering Manager', 
+                founder: '🚀 Founder',
+                generic: '👤 Generic Professional'
+            };
+
+            document.getElementById('message-examples').innerHTML = `
+                <div class="test-profile">
+                    <h4>${personaLabels[persona]} Message Examples:</h4>
+                    <div style="margin: 10px 0;">
+                        <strong>Connection Request:</strong>
+                        <div style="font-style: italic; color: #374151; margin: 5px 0; padding: 10px; background: #f9fafb; border-radius: 4px;">
+                            "${examples[persona].connection}"
+                        </div>
+                    </div>
+                    <div style="margin: 10px 0;">
+                        <strong>Referral Request:</strong>
+                        <div style="font-style: italic; color: #374151; margin: 5px 0; padding: 10px; background: #f9fafb; border-radius: 4px;">
+                            "${examples[persona].referral}"
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('custom-result').innerHTML = '';
+            document.getElementById('message-examples').innerHTML = '';
+        }
+
+        // Initialize with some example data
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('custom-name').value = 'Jane Smith';
+            document.getElementById('custom-title').value = 'Technical Recruiter';
+            document.getElementById('custom-company').value = 'TechCorp';
+            document.getElementById('custom-about').value = 'Passionate about connecting top talent with innovative companies';
+        });
+    </script>
+</body>
+</html> 

@@ -38,6 +38,16 @@ const UITemplates = {
   createTabContent: `
     <div id="create-content" style="display:block;">
       <div>
+        <!-- Persona Detection Display -->
+        <div id="persona-detection" style="margin-bottom:16px; padding:12px; background:linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border:1px solid #bae6fd; border-radius:10px; display:none;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span id="persona-icon" style="font-size:16px;">👤</span>
+            <span style="font-size:13px; font-weight:600; color:#0369a1;">Detected Profile Type:</span>
+            <span id="persona-label" style="font-size:13px; font-weight:700; color:#075985;"></span>
+          </div>
+          <p style="margin:0; font-size:11px; color:#0c4a6e; line-height:1.4;">Messages will be tailored for this professional role</p>
+        </div>
+        
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
           <div style="width:3px; height:20px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius:2px;"></div>
           <label for="custom-message-input" style="margin:0; color:#111827; font-size:15px; font-weight:700; letter-spacing:-0.025em;">Create Message</label>
@@ -81,21 +91,31 @@ const UITemplates = {
           </div>
         </div>
         
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; align-items:center;">
-          <button id="generate-ai-btn" style="padding:14px 16px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); display:flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;">
-            Generate
-          </button>
-          
+        <!-- AI Generation Options -->
+        <div style="margin-bottom:16px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <button id="generate-ai-btn" style="padding:14px 16px; background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); display:flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;">
+              🤖 Generate Connection
+            </button>
+            
+            <button id="generate-referral-btn" style="padding:14px 16px; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); display:flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;">
+              🤝 Ask Referral
+            </button>
+          </div>
+        </div>
+        
+        <!-- Message Actions -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:center;">
           <button id="save-custom-btn" style="padding:14px 16px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 4px rgba(16,185,129,0.2); display:flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;">
-            Save
+            💾 Save
           </button>
           
           <button id="use-current-btn" style="padding:14px 16px; background:linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 4px rgba(139,92,246,0.2); display:flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;">
-            Use
+            ✉️ Use
           </button>
           
           <button id="clear-custom-btn" style="padding:14px 16px; background:#64748b; color:white; border:none; border-radius:10px; cursor:pointer; font-size:13px; transition:all 0.2s ease; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px 0 rgba(0, 0, 0, 0.1); min-height:44px; white-space:nowrap;">
-            Clear
+            🗑️ Clear
           </button>
         </div>
       </div>

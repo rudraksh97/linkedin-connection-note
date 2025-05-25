@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Invitation notepad",
-  "version": "0.3.2",
-  "description": "Generate and manage connection‑request notes with an AI‑powered widget.",
+  "version": "0.5.0",
+  "description": "AI-powered LinkedIn connection messages with persona-based targeting, referral requests, and analytics.",
   "permissions": [
     "activeTab",
     "storage"
