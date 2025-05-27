@@ -80,12 +80,16 @@ class OllamaClient {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(request),
     });
 
     if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('CORS error: Ollama server needs to allow cross-origin requests. Please restart Ollama with: OLLAMA_ORIGINS=* ollama serve');
+      }
       if (response.status === 404) {
         throw new Error(`Model '${request.model}' not found. Please pull the model first: ollama pull ${request.model}`);
       }
@@ -100,12 +104,16 @@ class OllamaClient {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(request),
     });
 
     if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('CORS error: Ollama server needs to allow cross-origin requests. Please restart Ollama with: OLLAMA_ORIGINS=* ollama serve');
+      }
       if (response.status === 404) {
         throw new Error(`Model '${request.model}' not found. Please pull the model first: ollama pull ${request.model}`);
       }
@@ -117,9 +125,18 @@ class OllamaClient {
 
   async list() {
     const url = `${this.host}/api/tags`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
     
     if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('CORS error: Ollama server needs to allow cross-origin requests. Please restart Ollama with: OLLAMA_ORIGINS=* ollama serve');
+      }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 

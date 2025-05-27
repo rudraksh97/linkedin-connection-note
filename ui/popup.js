@@ -181,20 +181,18 @@ function showApiKeyModal() {
           <div class="form-group">
             <label>Model:</label>
             <select id="popup-ollama-model" class="form-select">
-              <option value="llama3.2">Llama 3.2 (Recommended)</option>
-              <option value="llama3.1">Llama 3.1</option>
-              <option value="llama3">Llama 3</option>
-              <option value="mistral">Mistral</option>
-              <option value="codellama">Code Llama</option>
-              <option value="phi3">Phi-3</option>
-              <option value="gemma2">Gemma 2</option>
+              <option value="">Select a model...</option>
             </select>
+            <button type="button" id="refresh-models-btn" class="btn btn-outline" style="margin-top: 5px; padding: 4px 8px; font-size: 12px; width: auto; display: inline-block;">🔄 Refresh Models</button>
           </div>
           <div class="help-box">
             <strong>Setup Ollama:</strong><br>
             1. Install from <a href="https://ollama.ai" target="_blank">ollama.ai</a><br>
             2. Run: <code>ollama pull llama3.2</code><br>
-            3. Start: <code>ollama serve</code>
+            3. Start with CORS enabled: <code>OLLAMA_ORIGINS=* ollama serve</code><br>
+            <br>
+            <strong>If you get CORS errors:</strong><br>
+            Stop Ollama and restart it with: <code>OLLAMA_ORIGINS=* ollama serve</code>
           </div>
         </div>
       </div>
@@ -207,37 +205,45 @@ function showApiKeyModal() {
   
   document.body.appendChild(overlay);
   
-  // Load current configuration
-  chrome.runtime.sendMessage({ action: 'getProvider' }, function(response) {
-    const provider = response && response.provider ? response.provider : 'openai';
+  // Load current configuration and set up initial state
+  Promise.all([
+    new Promise(resolve => chrome.runtime.sendMessage({ action: 'getProvider' }, resolve)),
+    new Promise(resolve => chrome.runtime.sendMessage({ action: 'getApiKey' }, resolve)),
+    new Promise(resolve => chrome.runtime.sendMessage({ action: 'getOllamaConfig' }, resolve))
+  ]).then(([providerResponse, apiKeyResponse, ollamaResponse]) => {
+    const provider = providerResponse && providerResponse.provider ? providerResponse.provider : 'openai';
     const openaiRadio = document.getElementById('popup-provider-openai');
     const ollamaRadio = document.getElementById('popup-provider-ollama');
     
+    // Set provider selection
     if (provider === 'ollama') {
       ollamaRadio.checked = true;
     } else {
       openaiRadio.checked = true;
     }
     
-    showProviderConfig();
-  });
-  
-  // Load existing API key for OpenAI
-  chrome.runtime.sendMessage({ action: 'getApiKey' }, function(response) {
+    // Load API key for OpenAI
     const apiKeyInput = document.getElementById('popup-api-key-input');
-    if (response && response.apiKey && apiKeyInput) {
-      apiKeyInput.value = response.apiKey;
+    if (apiKeyResponse && apiKeyResponse.apiKey && apiKeyInput) {
+      apiKeyInput.value = apiKeyResponse.apiKey;
     }
-  });
-  
-  // Load existing Ollama config
-  chrome.runtime.sendMessage({ action: 'getOllamaConfig' }, function(response) {
-    if (response) {
+    
+    // Load Ollama config
+    if (ollamaResponse) {
       const urlInput = document.getElementById('popup-ollama-url');
-      const modelSelect = document.getElementById('popup-ollama-model');
-      
-      if (urlInput) urlInput.value = response.url || 'http://localhost:11434';
-      if (modelSelect) modelSelect.value = response.model || 'llama3.2';
+      if (urlInput) {
+        urlInput.value = ollamaResponse.url || 'http://localhost:11434';
+      }
+    }
+    
+    // Show provider config and load models if needed
+    showProviderConfig();
+    
+    // If Ollama is selected, load models
+    if (provider === 'ollama' && ollamaResponse) {
+      setTimeout(() => {
+        loadOllamaModels(ollamaResponse.url || 'http://localhost:11434', ollamaResponse.model);
+      }, 200);
     }
   });
   
@@ -254,6 +260,23 @@ function showApiKeyModal() {
     } else if (ollamaRadio && ollamaRadio.checked) {
       openaiConfig.style.display = 'none';
       ollamaConfig.style.display = 'block';
+      
+      // Load models when user switches to Ollama (only if not already loaded)
+      const modelSelect = document.getElementById('popup-ollama-model');
+      if (modelSelect && modelSelect.options.length <= 1) {
+        setTimeout(() => {
+          const urlInput = document.getElementById('popup-ollama-url');
+          const url = urlInput ? urlInput.value.trim() : 'http://localhost:11434';
+          
+          // Get saved model from config
+          chrome.runtime.sendMessage({ action: 'getOllamaConfig' }, function(response) {
+            const savedModel = response && response.model ? response.model : null;
+            if (url) {
+              loadOllamaModels(url, savedModel);
+            }
+          });
+        }, 100);
+      }
     }
   }
   
@@ -261,6 +284,30 @@ function showApiKeyModal() {
   providerRadios.forEach(radio => {
     radio.addEventListener('change', showProviderConfig);
   });
+
+  // Set up Ollama-specific event listeners after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    // Refresh models button
+    const refreshModelsBtn = document.getElementById('refresh-models-btn');
+    if (refreshModelsBtn) {
+      refreshModelsBtn.addEventListener('click', function() {
+        const urlInput = document.getElementById('popup-ollama-url');
+        const url = urlInput ? urlInput.value.trim() : 'http://localhost:11434';
+        loadOllamaModels(url);
+      });
+    }
+
+    // Auto-refresh models when URL changes
+    const ollamaUrlInput = document.getElementById('popup-ollama-url');
+    if (ollamaUrlInput) {
+      ollamaUrlInput.addEventListener('blur', function() {
+        const url = this.value.trim();
+        if (url) {
+          loadOllamaModels(url);
+        }
+      });
+    }
+  }, 50);
   
   // Save button
   document.getElementById('save-provider-config').addEventListener('click', function() {
@@ -333,6 +380,74 @@ function showApiKeyModal() {
   overlay.addEventListener('click', function(e) {
     if (e.target === overlay) {
       overlay.remove();
+    }
+  });
+}
+
+function loadOllamaModels(url, selectedModel) {
+  const modelSelect = document.getElementById('popup-ollama-model');
+  if (!modelSelect) {
+    return;
+  }
+  // Show loading state
+  modelSelect.innerHTML = '<option value="">🔄 Loading models...</option>';
+  modelSelect.disabled = true;
+  
+  // Test connection and get models
+  chrome.runtime.sendMessage({ 
+    action: 'testOllamaConnection', 
+    url: url || 'http://localhost:11434'
+  }, function(response) {
+    if (chrome.runtime.lastError) {
+      modelSelect.innerHTML = '<option value="">Error loading models</option>';
+      modelSelect.disabled = false;
+      return;
+    }
+    
+    if (response && response.success && response.models && response.models.length > 0) {
+      // Clear and populate with available models
+      modelSelect.innerHTML = '';
+      
+      // Add available models
+      response.models.forEach(function(model) {
+        const option = document.createElement('option');
+        option.value = model.name;
+        option.textContent = model.name;
+        modelSelect.appendChild(option);
+      });
+      
+      // Set selected model if provided
+      if (selectedModel) {
+        const foundOption = Array.from(modelSelect.options).find(opt => opt.value === selectedModel);
+        if (foundOption) {
+          modelSelect.value = selectedModel;
+        } else if (modelSelect.options.length > 0) {
+          // If selected model not found, use first available
+          modelSelect.value = modelSelect.options[0].value;
+        }
+      } else if (modelSelect.options.length > 0) {
+        // No specific model selected, use first available
+        modelSelect.value = modelSelect.options[0].value;
+      }
+      
+      modelSelect.disabled = false;
+    } else {
+      // Connection failed or no models
+      let errorMsg = 'Connection failed';
+      if (response && response.error) {
+        if (response.error.includes('CORS error')) {
+          errorMsg = 'CORS issue - Restart Ollama with CORS enabled';
+        } else if (response.error.includes('fetch') || response.error.includes('Failed to fetch')) {
+          errorMsg = 'Ollama not running - Please start Ollama';
+        } else {
+          errorMsg = response.error;
+        }
+      } else if (response && response.models && response.models.length === 0) {
+        errorMsg = 'No models installed - Run: ollama pull llama3.2';
+      }
+      
+      modelSelect.innerHTML = `<option value="">⚠️ ${errorMsg}</option>`;
+      modelSelect.disabled = false;
     }
   });
 }

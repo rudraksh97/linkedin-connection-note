@@ -116,13 +116,24 @@ linkedin-connection-note/
 #### Manual Setup
 1. Install Ollama from [ollama.ai](https://ollama.ai)
 2. Pull a model: `ollama pull llama3.2` (recommended)
-3. Start the server: `ollama serve`
+3. Start the server with CORS enabled:
+   - **macOS/Linux**: `OLLAMA_ORIGINS=* ollama serve`
+   - **Windows**: `set OLLAMA_ORIGINS=* && ollama serve`
+   - Or use the provided helper scripts: `./start-ollama.sh` (macOS/Linux) or `start-ollama.bat` (Windows)
 4. Configure the extension:
    - Select "Ollama" as your provider
    - Set server URL (default: `http://localhost:11434`)
    - Click "🔍 Test Connection" to verify setup and auto-detect models
    - Choose your model from the dropdown
    - Click "Save & Continue"
+
+#### 🚨 CORS Issues Fix
+If you get "403 Forbidden" or CORS errors:
+1. Stop Ollama if it's running (Ctrl+C)
+2. Restart with CORS enabled:
+   - **macOS/Linux**: `OLLAMA_ORIGINS=* ollama serve`
+   - **Windows**: `set OLLAMA_ORIGINS=* && ollama serve`
+3. Use the provided helper scripts for convenience
 
 **Note**: The extension uses an implementation based on the official [ollama-js](https://github.com/ollama/ollama-js) library for robust API communication.
 
@@ -143,12 +154,13 @@ If you encounter any issues:
 3. Reload the page and try again
 
 **For Ollama:**
-1. Use the "🔍 Test Connection" button to diagnose issues
-2. Ensure Ollama is running: `ollama serve`
-3. Verify the model is installed: `ollama list`
-4. Check the server URL (default: http://localhost:11434)
-5. Try pulling the model again: `ollama pull llama3.2`
-6. If connection test fails, check firewall settings and ensure Ollama is accessible
+1. **CORS Issues (403 Forbidden)**: Restart Ollama with `OLLAMA_ORIGINS=* ollama serve`
+2. Use the "🔍 Test Connection" button to diagnose issues
+3. Ensure Ollama is running with CORS enabled (see setup instructions above)
+4. Verify the model is installed: `ollama list`
+5. Check the server URL (default: http://localhost:11434)
+6. Try pulling the model again: `ollama pull llama3.2`
+7. If connection test fails, check firewall settings and ensure Ollama is accessible
 
 **General:**
 - Reload the page and try again
