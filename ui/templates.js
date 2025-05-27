@@ -70,8 +70,6 @@ const UITemplates = {
               -webkit-user-select:text !important;
               -moz-user-select:text !important;
               -ms-user-select:text !important;
-              z-index:1 !important;
-              position:relative !important;
             "
           ></textarea>
           <div style="position:absolute; bottom:12px; right:12px; font-size:11px; color:#9ca3af; font-weight:500; background:rgba(255,255,255,0.9); padding:2px 6px; border-radius:4px; pointer-events:none;">

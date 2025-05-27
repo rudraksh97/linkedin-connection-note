@@ -354,11 +354,34 @@ function injectUI() {
   container.style.borderRadius = '12px';
   container.style.padding = '20px';
   container.style.boxShadow = '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)';
-  container.style.zIndex = '10001';
+  container.style.zIndex = '999999'; // Higher z-index to appear above LinkedIn modal
   container.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   container.style.boxSizing = 'border-box';
   container.style.display = 'flex';
   container.style.flexDirection = 'column';
+  
+  // Ensure container doesn't block interaction with page elements
+  container.style.pointerEvents = 'auto';
+  container.style.isolation = 'auto'; // Remove isolation to prevent stacking context issues
+  
+  // Critical: Ensure the container doesn't interfere with focus flow
+  container.setAttribute('data-focus-trap', 'false');
+  container.style.contain = 'none'; // Prevent containment that could block focus
+  
+  container.addEventListener('mouseenter', function() {
+    debugLog("Mouse entered extension container");
+  });
+  
+  container.addEventListener('mouseleave', function() {
+    debugLog("Mouse left extension container");
+    // Ensure textarea remains interactive even when mouse leaves container
+    var textarea = document.getElementById('custom-message-input');
+    if (textarea) {
+      textarea.style.pointerEvents = 'auto';
+      textarea.disabled = false;
+      textarea.readOnly = false;
+    }
+  });
   
     // Add unified content combining message library and AI functionality
   container.innerHTML = getTemplate('mainContainer');
@@ -366,17 +389,70 @@ function injectUI() {
   // Add container to page
   document.body.appendChild(container);
   
-  // Set up unified interface functionality
-  setTimeout(function() {
-    try {
-      setupUnifiedHandlers();
-    } catch (error) {
-      console.error('Error setting up unified handlers:', error);
-      // Even if handler setup fails, the UI should still be visible and partially functional
+  // Set up unified interface functionality immediately
+  try {
+    setupUnifiedHandlers();
+  } catch (error) {
+    console.error('Error setting up unified handlers:', error);
+    // Even if handler setup fails, the UI should still be visible and partially functional
+  }
+  
+  // Multiple aggressive attempts to ensure textarea is immediately usable
+  var activateTextarea = function() {
+    var textarea = document.getElementById('custom-message-input');
+    if (textarea) {
+      textarea.style.pointerEvents = 'auto';
+      textarea.style.cursor = 'text';
+      textarea.style.userSelect = 'text';
+      textarea.style.webkitUserSelect = 'text';
+      textarea.style.mozUserSelect = 'text';
+      textarea.style.msUserSelect = 'text';
+      textarea.disabled = false;
+      textarea.readOnly = false;
+      textarea.tabIndex = 0;
+      textarea.removeAttribute('disabled');
+      textarea.removeAttribute('readonly');
+      debugLog("Textarea immediately activated for user interaction");
     }
-  }, 100);
+  };
+  
+  // Immediate activation
+  activateTextarea();
+  
+  // Multiple delayed attempts
+  setTimeout(activateTextarea, 10);
+  setTimeout(activateTextarea, 50);
+  setTimeout(activateTextarea, 100);
+  setTimeout(activateTextarea, 250);
+  setTimeout(activateTextarea, 500);
   
   debugLog("UI injected successfully");
+  
+  // Automatically run focus test and attempt focus with multiple delays
+  var attemptFocus = function() {
+    debugLog("Attempting focus on textarea...");
+    var textarea = document.getElementById('custom-message-input');
+    if (textarea) {
+        // Ensure textarea is accessible before attempting to focus
+        textarea.style.pointerEvents = 'auto';
+        textarea.disabled = false;
+        textarea.readOnly = false;
+        textarea.tabIndex = 0;
+        
+        textarea.focus();
+        
+        if (document.activeElement === textarea) {
+            debugLog("✅ Textarea focus successful after attempt!");
+        } else {
+            debugLog("❌ Textarea focus failed after attempt.");
+        }
+    }
+  };
+  
+  setTimeout(attemptFocus, 100); // Initial attempt
+  setTimeout(attemptFocus, 500); // Second attempt
+  setTimeout(attemptFocus, 1500); // Third attempt (longer delay)
+  setTimeout(attemptFocus, 3000); // Fourth attempt (even longer delay)
   
   // Set up Send button detection immediately
   setTimeout(function() {
@@ -443,52 +519,75 @@ function repositionUI() {
 // Set up textarea handlers (can be called multiple times)
 function setupTextareaHandlers() {
   try {
-    var textarea = document.getElementById('custom-message-input');
+    var existingTextarea = document.getElementById('custom-message-input');
     var charCounter = document.getElementById('char-count');
     
-    if (!textarea) {
+    if (!existingTextarea) {
       debugLog("Textarea not found for setup");
       return;
     }
     
     // Only setup if not already setup (check for custom flag)
-    if (textarea.hasAttribute('data-handlers-setup')) {
+    if (existingTextarea.hasAttribute('data-handlers-setup')) {
       debugLog("Textarea handlers already setup");
       return;
     }
     
     debugLog("Setting up textarea handlers");
     
+    // COMPLETELY RECREATE the textarea to avoid any inherited issues
+    var textareaContainer = existingTextarea.parentNode;
+    var currentValue = existingTextarea.value || '';
+    
+    // Create a brand new textarea element
+    var textarea = document.createElement('textarea');
+    textarea.id = 'custom-message-input';
+    textarea.name = 'custom-message-input';
+    textarea.placeholder = 'Write your message here or Give prompt';
+    textarea.autocomplete = 'off';
+    textarea.spellcheck = true;
+    textarea.value = currentValue;
+    
+    // Set all properties programmatically to ensure they stick
+    textarea.disabled = false;
+    textarea.readOnly = false;
+    textarea.tabIndex = 0;
+    
+    // Apply all styles programmatically
+    textarea.style.cssText = `
+      width: 100% !important;
+      height: 140px !important;
+      padding: 16px !important;
+      border: 2px solid #e5e7eb !important;
+      border-radius: 12px !important;
+      resize: vertical !important;
+      font-size: 14px !important;
+      line-height: 1.6 !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      box-sizing: border-box !important;
+      outline: none !important;
+      transition: all 0.2s ease !important;
+      background: #ffffff !important;
+      color: #111827 !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+      cursor: text !important;
+      user-select: text !important;
+      pointer-events: auto !important;
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      -ms-user-select: text !important;
+      touch-action: manipulation !important;
+      position: relative !important;
+      z-index: 10 !important;
+    `;
+    
+    // Replace the old textarea
+    textareaContainer.replaceChild(textarea, existingTextarea);
+    
     // Mark as setup
     textarea.setAttribute('data-handlers-setup', 'true');
     
-    // Force enable all interaction properties immediately
-    textarea.removeAttribute('disabled');
-    textarea.removeAttribute('readonly');
-    textarea.contentEditable = false; // Ensure it's not contenteditable
-    textarea.tabIndex = 0;
-    
-    // Override any conflicting styles to ensure immediate interaction
-    textarea.style.pointerEvents = 'auto';
-    textarea.style.cursor = 'text';
-    textarea.style.userSelect = 'text';
-    textarea.style.webkitUserSelect = 'text';
-    textarea.style.mozUserSelect = 'text';
-    textarea.style.msUserSelect = 'text';
-    textarea.style.resize = 'vertical';
-    textarea.style.minHeight = '140px';
-    textarea.style.maxHeight = '300px';
-    textarea.style.zIndex = '1000';  // Higher z-index to ensure it's on top
-    textarea.style.position = 'relative';
-    
-    // Ensure the textarea is immediately interactive
-    textarea.style.opacity = '1';
-    textarea.style.visibility = 'visible';
-    textarea.style.display = 'block';
-    
-    // Force remove any potential blocking styles
-    textarea.style.pointerEvents = 'auto !important';
-    textarea.style.touchAction = 'manipulation';
+    debugLog("Textarea recreated successfully");
     
     // Character counter function
     function updateCharCount() {
@@ -510,99 +609,97 @@ function setupTextareaHandlers() {
       }
     }
     
-    // Enhanced focus handler
+    // Simple event handlers without complex manipulations
     textarea.addEventListener('focus', function() {
-      debugLog("Textarea focused - border should be blue now");
+      debugLog("Textarea focused");
       this.style.borderColor = '#3b82f6';
       this.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-      this.style.background = '#ffffff';
-      this.style.outline = 'none';
     });
     
-    // Enhanced blur handler
     textarea.addEventListener('blur', function() {
-      debugLog("Textarea blurred - border should be gray now");
+      debugLog("Textarea blurred");
       this.style.borderColor = '#e5e7eb';
       this.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
-      this.style.background = '#ffffff';
     });
     
-    // Input event with character counting
     textarea.addEventListener('input', function() {
       debugLog("Textarea input detected:", this.value.length, "characters");
       updateCharCount();
     });
     
-    // Enhanced click handler
     textarea.addEventListener('click', function(e) {
-      debugLog("Textarea clicked - should focus immediately");
-      e.stopPropagation();
-      
-      // Let the browser handle natural focus and cursor positioning
-      // Just ensure focus is set if for some reason it wasn't
-      if (document.activeElement !== this) {
-        debugLog("Textarea was not active, forcing focus");
-        this.focus();
-      } else {
-        debugLog("Textarea is already active");
-      }
-      
-      debugLog("Textarea click handled");
-    });
-    
-    // Double click to select all
-    textarea.addEventListener('dblclick', function(e) {
-      debugLog("Textarea double-clicked");
-      e.stopPropagation();
-      this.select();
-    });
-    
-    // Key events for better interaction
-    textarea.addEventListener('keydown', function(e) {
-      debugLog("Key pressed:", e.key);
-      // Allow all key events to propagate normally
-      updateCharCount();
+      debugLog("Textarea clicked - should focus naturally");
     });
     
     textarea.addEventListener('keyup', function(e) {
       updateCharCount();
     });
     
-    // Paste event
     textarea.addEventListener('paste', function(e) {
       debugLog("Paste event detected");
-      setTimeout(function() {
-        updateCharCount();
-      }, 10);
-    });
-    
-    // Mouse events for better interaction
-    textarea.addEventListener('mousedown', function(e) {
-      e.stopPropagation();
-    });
-    
-    textarea.addEventListener('mouseup', function(e) {
-      e.stopPropagation();
+      setTimeout(updateCharCount, 10);
     });
     
     // Initial character count
     updateCharCount();
     
-    // Remove the automatic focus code that was causing the issue
-    // The textarea should only focus when user explicitly clicks on it
-    debugLog("Textarea setup completed - ready for user interaction");
-    
-    // Additional safeguard - check if textarea is really interactive
+    // Test immediate focus capability
     setTimeout(function() {
-      if (textarea) {
-        // Test if we can programmatically set a value
-        var testValue = textarea.value;
-        textarea.value = testValue + " ";
-        textarea.value = testValue;
-        updateCharCount();
-        debugLog("Textarea interaction test completed");
+      debugLog("Testing immediate focus on recreated textarea");
+      textarea.focus();
+      if (document.activeElement === textarea) {
+        debugLog("✅ Textarea focus successful!");
+      } else {
+        debugLog("❌ Textarea focus failed");
       }
-    }, 500);
+      textarea.blur(); // Don't leave it focused
+    }, 100);
+    
+    // EMERGENCY BACKUP: Create invisible click interceptor overlay
+    var clickInterceptor = document.createElement('div');
+    clickInterceptor.style.cssText = `
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      z-index: 999998 !important; /* High z-index to be above LinkedIn modal but below main extension container */
+      background: transparent !important;
+      cursor: text !important;
+      pointer-events: auto !important;
+    `;
+    
+    clickInterceptor.addEventListener('click', function(e) {
+      debugLog("Click interceptor activated - focusing textarea");
+      e.preventDefault();
+      e.stopPropagation();
+      textarea.focus();
+      
+      // Position cursor where the user clicked
+      var rect = textarea.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+      
+      // Try to set cursor position (best effort)
+      try {
+        var textLength = textarea.value.length;
+        var clickRatio = y / rect.height;
+        var estimatedPosition = Math.round(textLength * clickRatio);
+        textarea.setSelectionRange(estimatedPosition, estimatedPosition);
+      } catch (err) {
+        // Fallback: just focus
+        textarea.focus();
+      }
+    });
+    
+    // Add interceptor as a sibling to the textarea
+    var textareaParent = textarea.parentNode;
+    textareaParent.style.position = 'relative';
+    textareaParent.appendChild(clickInterceptor);
+    
+    debugLog("Emergency click interceptor added");
+    
+    debugLog("Textarea setup completed - fresh element ready");
     
   } catch (error) {
     console.error('Error setting up textarea:', error);
@@ -613,6 +710,78 @@ function setupTextareaHandlers() {
 function setupUnifiedHandlers() {
   debugLog("Setting up unified handlers...");
   
+  // Simplified focus management
+  var container = document.getElementById('linkedin-ai-helper');
+  if (container) {
+    debugLog("Container found, setting up simple focus management");
+    
+    // Add a click handler to the container to help with focus restoration
+    container.addEventListener('click', function(e) {
+      var textarea = document.getElementById('custom-message-input');
+      if (!textarea) return;
+      
+      // Check if the click was on a button or interactive element within the container
+      // If not, attempt to focus the textarea
+      var targetTagName = e.target.tagName;
+      var isInteractive = targetTagName === 'BUTTON' || targetTagName === 'A' || targetTagName === 'INPUT' || targetTagName === 'SELECT' || targetTagName === 'TEXTAREA' || e.target.closest('button, a, input, select, textarea');
+      
+      if (!isInteractive) {
+        debugLog("Click within non-interactive area of container, attempting to focus textarea");
+        // Ensure textarea is accessible before attempting to focus
+        textarea.style.pointerEvents = 'auto';
+        textarea.disabled = false;
+        textarea.readOnly = false;
+        
+        // Attempt focus with a slight delay
+        setTimeout(function() {
+          textarea.focus();
+          debugLog("After delayed focus attempt, activeElement:", document.activeElement === textarea ? "TEXTAREA" : document.activeElement.tagName);
+
+          // Optional: try to restore cursor position (best effort)
+          var rect = textarea.getBoundingClientRect();
+          var x = e.clientX - rect.left;
+          var y = e.clientY - rect.top;
+          try {
+            var pos = getCursorPositionByCoords(textarea, x, y);
+            if (pos !== -1) {
+               textarea.setSelectionRange(pos, pos);
+            }
+          } catch (err) {
+            debugLog("Could not set cursor position:", err);
+          }
+        }, 50); // 50ms delay
+        
+      } else {
+        debugLog("Click on interactive element within container, not focusing textarea");
+      }
+    });
+    
+    // Simple global handler to ensure textarea is always clickable
+    var ensureTextareaAccessible = function() {
+      var textarea = document.getElementById('custom-message-input');
+      if (textarea) {
+        // Only fix if something is actually wrong
+        if (textarea.disabled || textarea.readOnly || textarea.style.pointerEvents === 'none') {
+          textarea.disabled = false;
+          textarea.readOnly = false;
+          textarea.style.pointerEvents = 'auto';
+          textarea.style.cursor = 'text';
+          debugLog("Textarea accessibility restored");
+        }
+      }
+    };
+    
+    // Check accessibility on any page interaction
+    document.addEventListener('click', ensureTextareaAccessible);
+    document.addEventListener('focus', ensureTextareaAccessible, true);
+    
+    // Periodic check (less frequent)
+    if (!window.textareaAccessibilityChecker) {
+      window.textareaAccessibilityChecker = setInterval(ensureTextareaAccessible, 3000); // Every 3 seconds
+      debugLog("Periodic accessibility checker started");
+    }
+  }
+  
   // Set up tab switching
   try {
     var createTab = document.getElementById('tab-create');
@@ -622,10 +791,7 @@ function setupUnifiedHandlers() {
       createTab.onclick = function() {
         try {
           switchMainTab('create');
-          // Re-setup textarea when switching to create tab
-          setTimeout(function() {
-            setupTextareaHandlers();
-          }, 100);
+          setupTextareaHandlers();
         } catch (error) {
           console.error('Error in create tab handler:', error);
         }
@@ -636,11 +802,8 @@ function setupUnifiedHandlers() {
       savedTab.onclick = function() {
         try {
           switchMainTab('saved');
-          // Reload saved messages and category pills when switching to saved tab
-          setTimeout(function() {
-            loadCategoryPills();
-            loadSavedMessages();
-          }, 100);
+          loadCategoryPills();
+          loadSavedMessages();
         } catch (error) {
           console.error('Error in saved tab handler:', error);
         }
@@ -657,20 +820,6 @@ function setupUnifiedHandlers() {
       closeBtn.onclick = function() {
         hideUI();
       };
-      
-      // Add hover effects to close button
-      closeBtn.onmouseover = function() {
-        this.style.backgroundColor = '#f3f4f6';
-        this.style.borderColor = '#d1d5db';
-        this.style.transform = 'scale(1.1)';
-        this.style.color = '#374151';
-      };
-      closeBtn.onmouseout = function() {
-        this.style.backgroundColor = '#f9fafb';
-        this.style.borderColor = '#e5e7eb';
-        this.style.transform = 'scale(1)';
-        this.style.color = '#6b7280';
-      };
     }
   } catch (error) {
     console.error('Error setting up close button:', error);
@@ -679,22 +828,9 @@ function setupUnifiedHandlers() {
   // Set up AI generation button
   try {
     var generateBtn = document.getElementById('generate-ai-btn');
-    
     if (generateBtn) {
       generateBtn.onclick = function() {
         generateAIMessage('connection');
-      };
-      
-      // Add enhanced hover effects to generate button
-      generateBtn.onmouseover = function() {
-        this.style.background = 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)';
-        this.style.transform = 'translateY(-2px)';
-        this.style.boxShadow = '0 8px 25px -8px rgba(59, 130, 246, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-      };
-      generateBtn.onmouseout = function() {
-        this.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
-        this.style.transform = 'translateY(0)';
-        this.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
       };
     }
   } catch (error) {
@@ -708,68 +844,36 @@ function setupUnifiedHandlers() {
     console.error('Error setting up message creation handlers:', error);
   }
   
-  // Enhanced textarea setup with multiple attempts
+  // Setup textarea
   setTimeout(function() {
     try {
       setupTextareaHandlers();
-      debugLog("Initial textarea setup completed");
+      debugLog("Textarea setup completed");
     } catch (error) {
-      console.error('Error in initial textarea setup:', error);
+      console.error('Error in textarea setup:', error);
     }
   }, 100);
-  
-  // Backup textarea setup
-  setTimeout(function() {
-    try {
-      var textarea = document.getElementById('custom-message-input');
-      if (textarea && !textarea.hasAttribute('data-handlers-setup')) {
-        debugLog("Backup textarea setup triggered");
-        setupTextareaHandlers();
-      }
-    } catch (error) {
-      console.error('Error in backup textarea setup:', error);
-    }
-  }, 500);
-  
-  // Load initial data (with chrome context check)
-  setTimeout(function() {
-    try {
-      // Check if chrome context is still valid before loading data
-      if (chrome && chrome.runtime && chrome.runtime.id) {
-        loadSavedMessages();
-        loadCategoryPills();
-        debugLog("Initial data loading completed");
-      } else {
-        console.log('Chrome extension context invalidated, skipping data load');
-      }
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-      // If context is invalidated, we can still continue without the saved data
-    }
-  }, 200);
-  
-
 }
-
-
-
-
 
 // Switch between main tabs
 function switchMainTab(tab) {
+  debugLog("Switching to tab:", tab);
+  
   var createTab = document.getElementById('tab-create');
   var savedTab = document.getElementById('tab-saved');
   var createContent = document.getElementById('create-content');
   var savedContent = document.getElementById('saved-content');
   
-  // Reset all tabs
+  // Reset all tabs to inactive state
   if (createTab) {
     createTab.style.background = 'transparent';
-    createTab.style.color = '#6b7280';
+    createTab.style.color = '#64748b';
+    createTab.classList.remove('active');
   }
   if (savedTab) {
     savedTab.style.background = 'transparent';
-    savedTab.style.color = '#6b7280';
+    savedTab.style.color = '#64748b';
+    savedTab.classList.remove('active');
   }
   
   // Hide all content
@@ -779,203 +883,23 @@ function switchMainTab(tab) {
   // Show selected tab and content
   if (tab === 'create') {
     if (createTab) {
-      createTab.style.background = '#0077b5';
-      createTab.style.color = 'white';
+      createTab.style.background = '#ffffff';
+      createTab.style.color = '#0f172a';
+      createTab.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
+      createTab.classList.add('active');
     }
     if (createContent) createContent.style.display = 'block';
+    debugLog("Create tab activated");
   } else if (tab === 'saved') {
     if (savedTab) {
-      savedTab.style.background = '#0077b5';
-      savedTab.style.color = 'white';
+      savedTab.style.background = '#ffffff';
+      savedTab.style.color = '#0f172a';
+      savedTab.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
+      savedTab.classList.add('active');
     }
     if (savedContent) savedContent.style.display = 'block';
+    debugLog("Saved tab activated");
   }
-}
-
-// Set up message creation handlers
-function setupMessageCreationHandlers() {
-  // Save custom message
-  try {
-    var saveBtn = document.getElementById('save-custom-btn');
-    if (saveBtn) {
-      saveBtn.onclick = function() {
-        try {
-          var input = document.getElementById('custom-message-input');
-          var message = input && input.value ? input.value.trim() : '';
-          if (message) {
-            showCategorySelectionModal(message, input);
-          }
-        } catch (error) {
-          console.error('Error in save button handler:', error);
-        }
-      };
-      
-      // Add hover effect
-      saveBtn.onmouseover = function() {
-        this.style.backgroundColor = '#059669';
-        this.style.transform = 'translateY(-1px)';
-        this.style.boxShadow = '0 4px 8px rgba(16,185,129,0.3)';
-      };
-      saveBtn.onmouseout = function() {
-        this.style.backgroundColor = '#10b981';
-        this.style.transform = 'translateY(0)';
-        this.style.boxShadow = '0 2px 4px rgba(16,185,129,0.2)';
-      };
-    }
-  } catch (error) {
-    console.error('Error setting up save button:', error);
-  }
-  
-  // Use current message
-  try {
-    var useBtn = document.getElementById('use-current-btn');
-    if (useBtn) {
-      useBtn.onclick = function() {
-        try {
-          var input = document.getElementById('custom-message-input');
-          var message = input && input.value ? input.value.trim() : '';
-          if (message) {
-            useNote(message);
-          }
-        } catch (error) {
-          console.error('Error in use button handler:', error);
-        }
-      };
-      
-      // Add hover effect
-      useBtn.onmouseover = function() {
-        this.style.backgroundColor = '#7c3aed';
-        this.style.transform = 'translateY(-1px)';
-        this.style.boxShadow = '0 4px 8px rgba(139,92,246,0.3)';
-      };
-      useBtn.onmouseout = function() {
-        this.style.backgroundColor = '#8b5cf6';
-        this.style.transform = 'translateY(0)';
-        this.style.boxShadow = '0 2px 4px rgba(139,92,246,0.2)';
-      };
-    }
-  } catch (error) {
-    console.error('Error setting up use button:', error);
-  }
-  
-  // Clear message input
-  try {
-    var clearBtn = document.getElementById('clear-custom-btn');
-    if (clearBtn) {
-      clearBtn.onclick = function() {
-        try {
-          var input = document.getElementById('custom-message-input');
-          if (input) {
-            input.value = '';
-            input.focus();
-          }
-        } catch (error) {
-          console.error('Error in clear button handler:', error);
-        }
-      };
-      
-      // Add hover effect
-      clearBtn.onmouseover = function() {
-        this.style.backgroundColor = '#4b5563';
-        this.style.transform = 'translateY(-1px)';
-      };
-      clearBtn.onmouseout = function() {
-        this.style.backgroundColor = '#6b7280';
-        this.style.transform = 'translateY(0)';
-      };
-    }
-  } catch (error) {
-    console.error('Error setting up clear button:', error);
-  }
-  
-  // Set up textarea handlers
-  setupTextareaHandlers();
-}
-
-// Set up left panel handlers (legacy function)  
-function setupLeftPanelHandlers() {
-  
-  try {
-    // Save custom message
-    var saveBtn = document.getElementById('save-custom-btn');
-    if (saveBtn) {
-      saveBtn.onclick = function() {
-        try {
-          var input = document.getElementById('custom-message-input');
-          var message = input && input.value ? input.value.trim() : '';
-                  if (message) {
-          saveCustomMessage(message);
-          if (input) {
-            input.value = '';
-          }
-        }
-        } catch (error) {
-          console.error('Error in save button handler:', error);
-        }
-      };
-    }
-  } catch (error) {
-    console.error('Error setting up save button:', error);
-  }
-  
-  try {
-    // Clear message input
-    var clearBtn = document.getElementById('clear-custom-btn');
-    if (clearBtn) {
-      clearBtn.onclick = function() {
-        try {
-          var input = document.getElementById('custom-message-input');
-          if (input) {
-            input.value = '';
-            input.focus();
-          }
-        } catch (error) {
-          console.error('Error in clear button handler:', error);
-        }
-      };
-      
-      // Add hover effect
-      clearBtn.onmouseover = function() {
-        this.style.backgroundColor = '#4b5563';
-        this.style.transform = 'translateY(-1px)';
-      };
-      clearBtn.onmouseout = function() {
-        this.style.backgroundColor = '#6b7280';
-        this.style.transform = 'translateY(0)';
-      };
-    }
-  } catch (error) {
-    console.error('Error setting up clear button:', error);
-  }
-  
-  // Set up textarea handlers
-  setupTextareaHandlers();
-  
-  try {
-    // Tab switching
-    var savedTab = document.getElementById('tab-saved');
-    
-    if (savedTab) {
-      savedTab.onclick = function() {
-        try {
-          switchTab('saved');
-        } catch (error) {
-          console.error('Error in saved tab handler:', error);
-        }
-      };
-    }
-  } catch (error) {
-    console.error('Error setting up tab handlers:', error);
-  }
-  
-  // Load initial data (with delay to ensure DOM is ready)
-  setTimeout(function() {
-    try {
-      loadSavedMessages();
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    }
-  }, 100);
 }
 
 // Switch between tabs (legacy function - only supports saved)
@@ -1224,36 +1148,60 @@ function createCategorySelectionPill(category, text) {
 // Load category pills
 function loadCategoryPills() {
   var pillsContainer = document.getElementById('category-pills');
-  if (!pillsContainer || !chrome || !chrome.runtime) {
+  if (!pillsContainer) {
+    debugLog("Category pills container not found");
     return;
   }
   
-  chrome.runtime.sendMessage({ action: 'getCategories' }, function(response) {
-    if (chrome.runtime.lastError) {
-      console.error('Chrome runtime error:', chrome.runtime.lastError);
-      return;
-    }
-    
-    if (response && response.categories) {
-      // Get current active category
-      var activePill = pillsContainer.querySelector('.category-pill.active');
-      var activeCategory = activePill ? activePill.getAttribute('data-category') : 'all';
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
+    console.error('LinkedIn AI Helper: Chrome runtime not available, cannot load categories.');
+    // Optionally display a message to the user
+    pillsContainer.innerHTML = '<div style="color:#ef4444; font-size:12px;">Error loading categories: Extension context lost.</div>';
+    return;
+  }
+  
+  try {
+    chrome.runtime.sendMessage({ action: 'getCategories' }, function(response) {
+      if (chrome.runtime.lastError) {
+        console.error('LinkedIn AI Helper: Chrome runtime error loading categories:', chrome.runtime.lastError);
+        // Optionally display a message to the user
+        if (pillsContainer) {
+          pillsContainer.innerHTML = '<div style="color:#ef4444; font-size:12px;">Error loading categories: ' + chrome.runtime.lastError.message + '</div>';
+        }
+        return;
+      }
       
-      // Clear existing pills
-      pillsContainer.innerHTML = '';
-      
-      // Add "All Messages" pill
-      var allPill = createCategoryPill('all', '📋 All Messages', activeCategory === 'all');
-      pillsContainer.appendChild(allPill);
-      
-      // Add category pills
-      response.categories.forEach(function(category) {
-        var icon = category === 'General' ? '📝' : category === 'Referral' ? '🤝' : '📁';
-        var pill = createCategoryPill(category, icon + ' ' + category, activeCategory === category);
-        pillsContainer.appendChild(pill);
-      });
-    }
-  });
+      if (response && response.categories) {
+        // Get current active category
+        var activePill = pillsContainer.querySelector('.category-pill.active');
+        var activeCategory = activePill ? activePill.getAttribute('data-category') : 'all';
+        
+        // Clear existing pills
+        pillsContainer.innerHTML = '';
+        
+        // Add "All Messages" pill
+        var allPill = createCategoryPill('all', '📋 All Messages', activeCategory === 'all');
+        pillsContainer.appendChild(allPill);
+        
+        // Add category pills
+        response.categories.forEach(function(category) {
+          var icon = category === 'General' ? '📝' : category === 'Referral' ? '🤝' : '📁';
+          var pill = createCategoryPill(category, icon + ' ' + category, activeCategory === category);
+          pillsContainer.appendChild(pill);
+        });
+      } else {
+        // Handle empty or invalid response
+         if (pillsContainer) {
+          pillsContainer.innerHTML = '<div style="color:#9ca3af; font-size:12px;">No categories found.</div>';
+        }
+      }
+    });
+  } catch (sendError) {
+    console.error('LinkedIn AI Helper: Error sending message to background (getCategories):', sendError);
+     if (pillsContainer) {
+       pillsContainer.innerHTML = '<div style="color:#ef4444; font-size:12px;">Communication error.</div>';
+     }
+  }
 }
 
 // Create category pill element
@@ -2911,25 +2859,65 @@ function testTextareaFocus() {
   var textarea = document.getElementById('custom-message-input');
   if (!textarea) {
     debugLog("No textarea found!");
+    console.log("No textarea found!");
     return;
   }
   
   debugLog("Textarea found:", textarea);
-  debugLog("Textarea current styles:");
-  debugLog("- pointerEvents:", textarea.style.pointerEvents);
-  debugLog("- cursor:", textarea.style.cursor);
-  debugLog("- userSelect:", textarea.style.userSelect);
-  debugLog("- disabled:", textarea.disabled);
-  debugLog("- readonly:", textarea.readOnly);
-  debugLog("- tabIndex:", textarea.tabIndex);
+  console.log("Textarea found:", textarea);
+  
+  debugLog("Textarea current state:");
+  console.log("Textarea current state:");
+  console.log("- pointerEvents:", textarea.style.pointerEvents);
+  console.log("- cursor:", textarea.style.cursor);
+  console.log("- userSelect:", textarea.style.userSelect);
+  console.log("- disabled:", textarea.disabled);
+  console.log("- readonly:", textarea.readOnly);
+  console.log("- tabIndex:", textarea.tabIndex);
+  console.log("- display:", window.getComputedStyle(textarea).display);
+  console.log("- visibility:", window.getComputedStyle(textarea).visibility);
+  console.log("- offsetParent:", textarea.offsetParent);
+  
+  // Force fix any issues
+  textarea.style.pointerEvents = 'auto';
+  textarea.style.cursor = 'text';
+  textarea.style.userSelect = 'text';
+  textarea.disabled = false;
+  textarea.readOnly = false;
+  textarea.tabIndex = 0;
+  textarea.removeAttribute('disabled');
+  textarea.removeAttribute('readonly');
+  
+  debugLog("Textarea state after forced fixes:");
+  console.log("Textarea state after forced fixes:");
+  console.log("- pointerEvents:", textarea.style.pointerEvents);
+  console.log("- disabled:", textarea.disabled);
+  console.log("- readonly:", textarea.readOnly);
   
   debugLog("Testing focus programmatically...");
+  console.log("Testing focus programmatically...");
   textarea.focus();
   
   setTimeout(function() {
     debugLog("After focus - activeElement:", document.activeElement === textarea ? "TEXTAREA" : document.activeElement.tagName);
-    debugLog("Test typing...");
-    textarea.value = "Test input - " + new Date().toLocaleTimeString();
+    console.log("After focus - activeElement:", document.activeElement === textarea ? "TEXTAREA" : document.activeElement.tagName);
+    
+    debugLog("Testing click simulation...");
+    console.log("Testing click simulation...");
+    var clickEvent = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window
+    });
+    textarea.dispatchEvent(clickEvent);
+    
+    setTimeout(function() {
+      debugLog("After click simulation - activeElement:", document.activeElement === textarea ? "TEXTAREA" : document.activeElement.tagName);
+      console.log("After click simulation - activeElement:", document.activeElement === textarea ? "TEXTAREA" : document.activeElement.tagName);
+      
+      debugLog("Test completed - try clicking the textarea now");
+      console.log("Test completed - try clicking the textarea now");
+    }, 100);
   }, 100);
 }
 
@@ -3038,6 +3026,120 @@ Create a generic but authentic connection message.`;
 Make it personalized and authentic.`;
   }
 }
+
+// Set up message creation handlers
+function setupMessageCreationHandlers() {
+  debugLog("Setting up message creation handlers...");
+  
+  // Save custom message
+  try {
+    var saveBtn = document.getElementById('save-custom-btn');
+    if (saveBtn) {
+      saveBtn.onclick = function() {
+        try {
+          var input = document.getElementById('custom-message-input');
+          var message = input && input.value ? input.value.trim() : '';
+          if (message) {
+            showCategorySelectionModal(message, input);
+          } else {
+            showLeftPanelFeedback('Please enter a message first', 'error');
+          }
+        } catch (error) {
+          console.error('Error in save button handler:', error);
+        }
+      };
+      
+      // Add hover effect
+      saveBtn.onmouseover = function() {
+        this.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+        this.style.transform = 'translateY(-1px)';
+        this.style.boxShadow = '0 6px 20px -6px rgba(16, 185, 129, 0.4)';
+      };
+      saveBtn.onmouseout = function() {
+        this.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 2px 4px rgba(16,185,129,0.2)';
+      };
+    }
+  } catch (error) {
+    console.error('Error setting up save button:', error);
+  }
+  
+  // Use current message
+  try {
+    var useBtn = document.getElementById('use-current-btn');
+    if (useBtn) {
+      useBtn.onclick = function() {
+        try {
+          var input = document.getElementById('custom-message-input');
+          var message = input && input.value ? input.value.trim() : '';
+          if (message) {
+            useNote(message);
+          } else {
+            showLeftPanelFeedback('Please enter a message first', 'error');
+          }
+        } catch (error) {
+          console.error('Error in use button handler:', error);
+        }
+      };
+      
+      // Add hover effect
+      useBtn.onmouseover = function() {
+        this.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+        this.style.transform = 'translateY(-1px)';
+        this.style.boxShadow = '0 6px 20px -6px rgba(139, 92, 246, 0.4)';
+      };
+      useBtn.onmouseout = function() {
+        this.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 2px 4px rgba(139,92,246,0.2)';
+      };
+    }
+  } catch (error) {
+    console.error('Error setting up use button:', error);
+  }
+  
+  // Clear message input
+  try {
+    var clearBtn = document.getElementById('clear-custom-btn');
+    if (clearBtn) {
+      clearBtn.onclick = function() {
+        try {
+          var input = document.getElementById('custom-message-input');
+          if (input) {
+            input.value = '';
+            input.focus();
+            // Update character count
+            var charCounter = document.getElementById('char-count');
+            if (charCounter) {
+              charCounter.textContent = '0';
+              charCounter.style.color = '#9ca3af';
+              charCounter.style.fontWeight = '500';
+            }
+          }
+        } catch (error) {
+          console.error('Error in clear button handler:', error);
+        }
+      };
+      
+      // Add hover effect
+      clearBtn.onmouseover = function() {
+        this.style.background = '#4b5563';
+        this.style.transform = 'scale(1.05)';
+      };
+      clearBtn.onmouseout = function() {
+        this.style.background = '#64748b';
+        this.style.transform = 'scale(1)';
+      };
+    }
+  } catch (error) {
+    console.error('Error setting up clear button:', error);
+  }
+  
+  debugLog("Message creation handlers setup completed");
+}
+
+// Switch between tabs (legacy function - only supports saved)
 
 
 
